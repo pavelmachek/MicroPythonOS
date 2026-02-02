@@ -1,193 +1,205 @@
-import lvgl as lv
-import os
-from mpos import Activity, TaskManager, sdcard
+import time
+import random
+
+from mpos import Activity
+
+try:
+    import lvgl as lv
+except ImportError:
+    pass
+
 
 class Main(Activity):
 
-    romdir = "/roms"
-    doomdir = romdir + "/doom"
-    retrogodir = "/retro-go"
-    configdir = retrogodir + "/config"
-    bootfile = configdir + "/boot.json"
-    partition_label = "prboom-go"
-    mountpoint_sdcard = "/sdcard"
-    esp32_partition_type_ota_0 = 16
-    #partition_label = "retro-core"
-    # Widgets:
-    status_label = None
-    wadlist = None
-    bootfile_prefix = ""
-    bootfile_to_write = ""
+    COLS = 6
+    ROWS = 12
+
+    COLORS = [
+        0xE74C3C,  # red
+        0xF1C40F,  # yellow
+        0x2ECC71,  # green
+        0x3498DB,  # blue
+        0x9B59B6,  # purple
+    ]
+
+    EMPTY = -1
+
+    FALL_INTERVAL = 600  # ms
+
+    def __init__(self):
+        super().__init__()
+        self.board = [[self.EMPTY for _ in range(self.COLS)] for _ in range(self.ROWS)]
+        self.cells = []
+
+        self.active_col = self.COLS // 2
+        self.active_row = -3
+        self.active_colors = []
+
+        self.timer = None
+        self.animating = False
+
+    # ---------------------------------------------------------------------
 
     def onCreate(self):
-        screen = lv.obj()
-        screen.set_style_pad_all(15, lv.PART.MAIN)
-        
-        # Create title label
-        title_label = lv.label(screen)
-        title_label.set_text("Choose your DOOM:")
-        title_label.align(lv.ALIGN.TOP_LEFT, 0, 0)
+        self.screen = lv.obj()
+        self.screen.remove_flag(lv.obj.FLAG.SCROLLABLE)
 
-        # Create list widget for WAD files
-        self.wadlist = lv.list(screen)
-        self.wadlist.set_size(lv.pct(100), lv.pct(70))
-        self.wadlist.center()
+        d = lv.display_get_default()
+        self.SCREEN_WIDTH = d.get_horizontal_resolution()
+        self.SCREEN_HEIGHT = d.get_vertical_resolution()
 
-        # Create status label for messages
-        self.status_label = lv.label(screen)
-        self.status_label.set_width(lv.pct(90))
-        self.status_label.set_long_mode(lv.label.LONG_MODE.WRAP)
-        self.status_label.align(lv.ALIGN.BOTTOM_LEFT, 0, 0)
-        # Set default green color for status label
-        self.status_label.set_style_text_color(lv.color_hex(0x00FF00), lv.PART.MAIN)
+        self.CELL = min(
+            self.SCREEN_WIDTH // self.COLS,
+            self.SCREEN_HEIGHT // self.ROWS
+        )
 
-        self.setContentView(screen)
+        board_x = (self.SCREEN_WIDTH - self.CELL * self.COLS) // 2
+        board_y = (self.SCREEN_HEIGHT - self.CELL * self.ROWS) // 2
+
+        for r in range(self.ROWS):
+            row = []
+            for c in range(self.COLS):
+                o = lv.obj(self.screen)
+                o.set_size(self.CELL - 2, self.CELL - 2)
+                o.set_pos(
+                    board_x + c * self.CELL + 1,
+                    board_y + r * self.CELL + 1
+                )
+                o.set_style_radius(4, 0)
+                o.set_style_bg_color(lv.color_hex(0x1C2833), 0)
+                o.set_style_border_width(1, 0)
+                row.append(o)
+            self.cells.append(row)
+
+        self.screen.add_event_cb(self.on_touch, lv.EVENT.CLICKED, None)
+        self.setContentView(self.screen)
+
+        self.spawn_piece()
+
+    # ---------------------------------------------------------------------
 
     def onResume(self, screen):
-        # Try to mount the SD card and if successful, use it, as retro-go can only use one or the other:
-        self.bootfile_prefix = ""
-        mounted_sdcard = sdcard.mount_with_optional_format(self.mountpoint_sdcard)
-        if mounted_sdcard:
-            print("sdcard is mounted, configuring it...")
-            self.bootfile_prefix = self.mountpoint_sdcard
-        self.bootfile_to_write = self.bootfile_prefix + self.bootfile
-        print(f"writing to {self.bootfile_to_write}")
-        
-        # Scan for WAD files and populate the list
-        self.refresh_wad_list()
+        self.timer = lv.timer_create(self.tick, self.FALL_INTERVAL, None)
 
-    def scan_wad_files(self, directory):
-        """Scan a directory for .wad and .zip files"""
-        wad_files = []
-        try:
-            for filename in os.listdir(directory):
-                if filename.lower().endswith(('.wad', '.zip')):
-                    wad_files.append(filename)
-            
-            # Sort the list for consistent ordering
-            wad_files.sort()
-            print(f"Found {len(wad_files)} WAD files in {directory}: {wad_files}")
-        except OSError as e:
-            print(f"Directory does not exist or cannot be read: {directory}")
-        except Exception as e:
-            print(f"Error scanning directory {directory}: {e}")
-        
-        return wad_files
+    def onPause(self, screen):
+        if self.timer:
+            self.timer.delete()
+            self.timer = None
 
-    def get_file_size_warning(self, filepath):
-        """Get file size warning suffix if file is too small or empty"""
-        try:
-            size = os.stat(filepath)[6]  # Get file size
-            if size == 0:
-                return " (EMPTY FILE)"  # Red
-            elif size < 80 * 1024:  # 80KB
-                return " (TOO SMALL)"  # Orange
-        except Exception as e:
-            print(f"Error checking file size for {filepath}: {e}")
-        return ""
+    # ---------------------------------------------------------------------
 
-    def refresh_wad_list(self):
-        """Scan for WAD files and populate the list"""
-        self.status_label.set_text(f"Listing files in: {self.bootfile_prefix + self.doomdir}")
-        print("refresh_wad_list: Clearing current list")
-        self.wadlist.clean()
+    def spawn_piece(self):
+        self.active_col = self.COLS // 2
+        self.active_row = -3
+        self.active_colors = [random.randrange(len(self.COLORS)) for _ in range(3)]
 
-        # Scan internal storage or SD card
-        all_wads = self.scan_wad_files(self.bootfile_prefix + self.doomdir)
-        all_wads.sort()
+    def tick(self, t):
+        if self.can_fall():
+            self.active_row += 1
+        else:
+            self.lock_piece()
+            self.clear_matches()
+            self.spawn_piece()
 
-        if len(all_wads) == 0:
-            self.status_label.set_text(f"No .wad or .zip files found in {self.doomdir}")
-            print("No WAD files found")
+        self.redraw()
+
+    # ---------------------------------------------------------------------
+
+    def can_fall(self):
+        for i in range(3):
+            r = self.active_row + i + 1
+            c = self.active_col
+            if r >= self.ROWS:
+                return False
+            if r >= 0 and self.board[r][c] != self.EMPTY:
+                return False
+        return True
+
+    def lock_piece(self):
+        for i in range(3):
+            r = self.active_row + i
+            if r >= 0:
+                self.board[r][self.active_col] = self.active_colors[i]
+
+    # ---------------------------------------------------------------------
+
+    def clear_matches(self):
+        to_clear = set()
+
+        for r in range(self.ROWS):
+            for c in range(self.COLS):
+                color = self.board[r][c]
+                if color == self.EMPTY:
+                    continue
+
+                # horizontal
+                if c <= self.COLS - 3:
+                    if all(self.board[r][c + i] == color for i in range(3)):
+                        for i in range(3):
+                            to_clear.add((r, c + i))
+
+                # vertical
+                if r <= self.ROWS - 3:
+                    if all(self.board[r + i][c] == color for i in range(3)):
+                        for i in range(3):
+                            to_clear.add((r + i, c))
+
+        if not to_clear:
             return
 
-        # Populate list with WAD files
-        print(f"refresh_wad_list: Populating list with {len(all_wads)} WAD files")
-        self.status_label.set_text(f"Listed files in: {self.bootfile_prefix + self.doomdir}")
-        for wad_file in all_wads:
-            # Get file size warning if applicable
-            warning = self.get_file_size_warning(self.bootfile_prefix + self.doomdir + '/' + wad_file)
-            button_text = wad_file + warning
-            button = self.wadlist.add_button(None, button_text)
-            button.add_event_cb(lambda e, p=self.doomdir + '/' + wad_file: TaskManager.create_task(self.start_wad(self.bootfile_prefix, self.bootfile_to_write, p)), lv.EVENT.CLICKED, None)
+        for r, c in to_clear:
+            self.board[r][c] = self.EMPTY
 
-        # If only one WAD file, auto-start it
-        if len(all_wads) == 1:
-            print(f"refresh_wad_list: Only one WAD file found, auto-starting: {all_wads[0]}")
-            TaskManager.create_task(self.start_wad(self.bootfile_prefix, self.bootfile_to_write, self.doomdir + '/' + all_wads[0]))
+        self.apply_gravity()
 
-    def mkdir(self, dirname):
-        # Would be better to only create it if it doesn't exist
-        try:
-            os.mkdir(dirname)
-        except Exception as e:
-            # Not really useful to show this in the UI, as it's usually just an "already exists" error:
-            print(f"Info: could not create directory {dirname} because: {e}")
+    def apply_gravity(self):
+        for c in range(self.COLS):
+            stack = [self.board[r][c] for r in range(self.ROWS) if self.board[r][c] != self.EMPTY]
+            for r in range(self.ROWS):
+                self.board[r][c] = self.EMPTY
+            for i, v in enumerate(reversed(stack)):
+                self.board[self.ROWS - 1 - i][c] = v
 
-    async def start_wad(self, bootfile_prefix, bootfile_to_write, wadfile):
-        self.status_label.set_text(f"Launching Doom with file: {bootfile_prefix}{wadfile}")
-        await TaskManager.sleep(1) # Give the user a minimal amount of time to read the filename
+    # ---------------------------------------------------------------------
 
-        # Create these folders, in case the user wants to add doom later:
-        self.mkdir(bootfile_prefix + self.romdir)
-        self.mkdir(bootfile_prefix + self.doomdir)
+    def redraw(self):
+        # draw board
+        for r in range(self.ROWS):
+            for c in range(self.COLS):
+                v = self.board[r][c]
+                if v == self.EMPTY:
+                    self.cells[r][c].set_style_bg_color(lv.color_hex(0x1C2833), 0)
+                else:
+                    self.cells[r][c].set_style_bg_color(
+                        lv.color_hex(self.COLORS[v]), 0
+                    )
 
-        # Create structure to place bootfile:
-        self.mkdir(bootfile_prefix + self.retrogodir)
-        self.mkdir(bootfile_prefix + self.configdir)
-        try:
-            import json
-            # Would be better to only write this if it differs from what's already there:
-            fd = open(bootfile_to_write, 'w')
-            bootconfig = {
-                "BootName": "doom",
-                "BootArgs": f"/sd{wadfile}",
-                "BootSlot": -1,
-                "BootFlags": 0
-            }
-            json.dump(bootconfig, fd)
-            fd.close()
-        except Exception as e:
-            self.status_label.set_text(f"ERROR: could not write config file: {e}")
-            return
-        results = []
-        try:
-            from esp32 import Partition
-            results = Partition.find(label=self.partition_label)
-        except Exception as e:
-            self.status_label.set_text(f"ERROR: could not search for internal partition with label {self.partition_label}, unable to start: {e}")
-            return
-        if len(results) < 1:
-            self.status_label.set_text(f"ERROR: could not find internal partition with label {self.partition_label}, unable to start")
-            return
-        partition = results[0]
-        try:
-            partition.set_boot()
-        except Exception as e:
-            print(f"ERROR: could not set partition {partition} as boot, it probably doesn't contain a valid program: {e}")
-        try:
-            import vfs
-            vfs.umount('/')
-        except Exception as e:
-            print(f"Warning: could not unmount internal filesystem from /: {e}")
-        # Write the currently booted OTA partition number to NVS, so that retro-go's apps know where to go back to:
-        try:
-            from esp32 import NVS
-            nvs = NVS('fri3d.sys')
-            boot_partition = nvs.get_i32('boot_partition')
-            print(f"boot_partition in fri3d.sys of NVS: {boot_partition}")
-            running_partition = Partition(Partition.RUNNING)
-            running_partition_nr = running_partition.info()[1] - self.esp32_partition_type_ota_0
-            print(f"running_partition_nr: {running_partition_nr}")
-            if running_partition_nr != boot_partition:
-                print(f"setting boot_partition in fri3d.sys of NVS to {running_partition_nr}")
-                nvs.set_i32('boot_partition', running_partition_nr)
-            else:
-                print("No need to update boot_partition")
-        except Exception as e:
-            print(f"Warning: could not write currently booted partition to boot_partition in fri3d.sys of NVS: {e}")
-        try:
-            import machine
-            machine.reset()
-        except Exception as e:
-            print(f"Warning: could not restart machine: {e}")
+        # draw active piece
+        for i in range(3):
+            r = self.active_row + i
+            if r >= 0 and r < self.ROWS:
+                self.cells[r][self.active_col].set_style_bg_color(
+                    lv.color_hex(self.COLORS[self.active_colors[i]]), 0
+                )
+
+    # ---------------------------------------------------------------------
+
+    def on_touch(self, e):
+        p = lv.indev_get_act().get_point()
+        x = p.x
+
+        if x < self.SCREEN_WIDTH // 3:
+            self.move(-1)
+        elif x > self.SCREEN_WIDTH * 2 // 3:
+            self.move(1)
+        else:
+            self.rotate()
+
+    def move(self, dx):
+        nc = self.active_col + dx
+        if 0 <= nc < self.COLS:
+            self.active_col = nc
+
+    def rotate(self):
+        self.active_colors = self.active_colors[1:] + self.active_colors[:1]
+
