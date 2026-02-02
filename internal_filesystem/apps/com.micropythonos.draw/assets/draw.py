@@ -42,7 +42,7 @@ class Draw(Activity):
                 #self.draw_line(x,y)
                 return
 
-    def draw_line(self, x, y):
+    def draw_line(self, x1, y1, x2, y2):
         dsc = lv.draw_line_dsc_t()
         lv.draw_line_dsc_t.init(dsc)
         dsc.color = DARKPINK
@@ -50,11 +50,11 @@ class Draw(Activity):
         dsc.round_end = 1
         dsc.round_start = 1
         dsc.p1 = lv.point_precise_t()
-        dsc.p1.x = x
-        dsc.p1.y = y
+        dsc.p1.x = x1
+        dsc.p1.y = y1
         dsc.p2 = lv.point_precise_t()
-        dsc.p2.x = 100
-        dsc.p2.y = 200
+        dsc.p2.x = x2
+        dsc.p2.y = y2
         lv.draw_line(self.layer,dsc)
         self.canvas.finish_layer(self.layer)
 

@@ -24,7 +24,12 @@ else
 	echo "Running on $os_name"
 	binary="$scriptdir"/../lvgl_micropython/build/lvgl_micropy_unix
 fi
+
 binary="$(cd "$(dirname "$binary")" && pwd -P)/$(basename "$binary")"
+binary=$(readlink -f "$binary")
+
+binary="$scriptdir"/../../MicroPythonOS_amd64_linux_0.7.1.elf
+
 chmod +x "$binary"
 
 pushd "$scriptdir"/../internal_filesystem/
