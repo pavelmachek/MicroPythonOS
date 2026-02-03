@@ -71,7 +71,14 @@ class Main(Activity):
                 row.append(o)
             self.cells.append(row)
 
+        # Make screen focusable for keyboard input
+        focusgroup = lv.group_get_default()
+        if focusgroup:
+            focusgroup.add_obj(self.screen)
+
         self.screen.add_event_cb(self.on_touch, lv.EVENT.CLICKED, None)
+        self.screen.add_event_cb(self.on_key, lv.EVENT.KEY, None)
+        
         self.setContentView(self.screen)
 
         self.spawn_piece()
@@ -185,6 +192,7 @@ class Main(Activity):
     # ---------------------------------------------------------------------
 
     def on_touch(self, e):
+        print("Touch event")
         p = lv.indev_get_act().get_point()
         x = p.x
 
@@ -194,6 +202,23 @@ class Main(Activity):
             self.move(1)
         else:
             self.rotate()
+
+    def on_key(self, event):
+        """Handle keyboard input"""
+        print("Keyboard event")
+        key = event.get_key()
+        if key == ord("z"):
+            self.move(-1)
+            return
+        if key == ord("x"):
+            self.rotate()
+            return
+        if key == ord("c"):
+            self.move(1)
+            return
+        
+        #if key == lv.KEY.ENTER or key == lv.KEY.UP or key == ord("A") or key == ord("a"):
+        print(f"on_key: unhandled key {key}")
 
     def move(self, dx):
         nc = self.active_col + dx
