@@ -1,6 +1,20 @@
 import time
 import random
 
+"""
+bugs:
+[x] does not explode on diagonal
+
+should blink explosions
+
+explodes while moving?
+
+explosions should work in series
+
+movement should be immediate
+
+"""
+
 from mpos import Activity
 
 try:
@@ -132,6 +146,7 @@ class Main(Activity):
 
     def clear_matches(self):
         to_clear = set()
+        score = 0
 
         for r in range(self.ROWS):
             for c in range(self.COLS):
@@ -144,20 +159,43 @@ class Main(Activity):
                     if all(self.board[r][c + i] == color for i in range(3)):
                         for i in range(3):
                             to_clear.add((r, c + i))
+                            score += 1
 
                 # vertical
                 if r <= self.ROWS - 3:
                     if all(self.board[r + i][c] == color for i in range(3)):
                         for i in range(3):
                             to_clear.add((r + i, c))
+                            score += 1
 
+                # diagonal \
+                if r <= self.ROWS - 3 and c <= self.COLS - 3:
+                    if all(self.board[r + i][c + i] == color for i in range(3)):
+                        for i in range(3):
+                            to_clear.add((r + i, c + i))
+                            score += 1
+
+                # diagonal /
+                if r <= self.ROWS - 3 and c > 2:
+                    if all(self.board[r + i][c - i] == color for i in range(3)):
+                        for i in range(3):
+                            to_clear.add((r + i, c - i))
+                            score += 1
+                            
         if not to_clear:
             return
 
+        print("Score: ", score)
         for r, c in to_clear:
             self.board[r][c] = self.EMPTY
 
+        self.redraw()
+        time.sleep(.5)
         self.apply_gravity()
+        self.redraw()
+        time.sleep(.5)
+        self.clear_matches()
+        self.redraw()
 
     def apply_gravity(self):
         for c in range(self.COLS):
@@ -207,14 +245,17 @@ class Main(Activity):
         """Handle keyboard input"""
         print("Keyboard event")
         key = event.get_key()
-        if key == ord("z"):
+        if key == ord("a"):
             self.move(-1)
             return
-        if key == ord("x"):
+        if key == ord("w"):
             self.rotate()
             return
-        if key == ord("c"):
+        if key == ord("d"):
             self.move(1)
+            return
+        if key == ord("s"):
+            self.apply_gravity()
             return
         
         #if key == lv.KEY.ENTER or key == lv.KEY.UP or key == ord("A") or key == ord("a"):
@@ -224,7 +265,9 @@ class Main(Activity):
         nc = self.active_col + dx
         if 0 <= nc < self.COLS:
             self.active_col = nc
+        self.redraw()
 
     def rotate(self):
-        self.active_colors = self.active_colors[1:] + self.active_colors[:1]
+        self.active_colors = self.active_colors[-1:] + self.active_colors[:-1]
+        self.redraw()
 
