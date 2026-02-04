@@ -13,6 +13,12 @@ explosions should work in series
 
 movement should be immediate
 
+/ vlevo dole nezmizi
+
+chce to skore
+
+<> umozny pohyb do obsazene oblasti
+
 """
 
 from mpos import Activity
@@ -255,7 +261,7 @@ class Main(Activity):
             self.move(1)
             return
         if key == ord("s"):
-            self.apply_gravity()
+            self.tick(0)
             return
         
         #if key == lv.KEY.ENTER or key == lv.KEY.UP or key == ord("A") or key == ord("a"):
