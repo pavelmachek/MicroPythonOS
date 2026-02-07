@@ -1,0 +1,2 @@
+#!/bin/sh
+DISPLAY=:1 scripts/run_desktop.sh
