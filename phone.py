@@ -98,9 +98,32 @@ class Phone:
             print("Revision:", getattr(modem, "Revision", None))
             print("Equipment Identifier (IMEI):", getattr(modem, "EquipmentIdentifier", None))
 
-            v = modem.Setup(0x7, False)
+            print("Signal (gsm):", getattr(modem, "Gsm", None))
+            print("Signal (umts):", getattr(modem, "Umts", None))
+            print("Signal (lte):", getattr(modem, "Lte", None))
+
+            print("Signal:", getattr(modem, "SignalQuality", None))
+            print("RegistrationState:", getattr(modem, "RegistrationState", None))
+
+            # Hallucination?
+            lac = getattr(modem, "LocationAreaCode", None)
+            cid = getattr(modem, "CellId", None)
+            tac = getattr(modem, "TrackingAreaCode", None)
+            print("Lac...:", lac, cid, tac)
+
+            print("Location:", getattr(modem, "Location", None))
+
+            v = modem.Setup(0x027, False)
             print("Location setup? ", v)
             v = modem.GetLocation()
+            # This has 1) network info and 4) nmea
+            print(v)
+
+            # Fails with no signal; but has even timing-advance info (I guess only when transmitting)
+            try: 
+                v = modem.GetCellInfo()
+            except:
+                v = {}
             print(v)
 
             if False:
