@@ -90,6 +90,43 @@ class Phone:
             modem = self.bus.get(".ModemManager1", modem_path)
             print("modem ", modem)
             operator = getattr(modem, "OperatorName", None)
+            print("Operator code:", getattr(modem, "OperatorCode", None))  # 0..11 according to MMState
+            print("State:", getattr(modem, "State", None))  # 0..11 according to MMState
+            print("Access Technology:", getattr(modem, "AccessTechnologies", None))
+            print("Model:", getattr(modem, "Model", None))
+            print("Manufacturer:", getattr(modem, "Manufacturer", None))
+            print("Revision:", getattr(modem, "Revision", None))
+            print("Equipment Identifier (IMEI):", getattr(modem, "EquipmentIdentifier", None))
+
+            v = modem.Setup(0x7, False)
+            print("Location setup? ", v)
+            v = modem.GetLocation()
+            print(v)
+
+            if False:
+                simple = self.bus.get(".ModemManager1.Modem.Modem3gpp", modem_path)
+                print(simple)
+
+            if False:
+                # --- Signal ---
+                try:
+                    modem3gpp = modem.Modem3gpp
+                    if modem3gpp:
+                        print("3GPP Operator Code:", getattr(modem3gpp, "OperatorCode", None))
+                        print("Signal Quality:", getattr(modem3gpp, "SignalQuality", None))  # (percent, valid)
+                        print("Registration State:", getattr(modem3gpp, "RegistrationState", None))
+                except Exception:
+                    print("No 3gpp?")
+
+                # Pokud je LTE/other, ModemManager má ještě Modem4g nebo ModemSignal
+                try:
+                    signal = modem.Signal
+                    if signal:
+                        # SignalQuality může být tuple (percent, valid)
+                        print("SignalQuality (Signal interface):", getattr(signal, "SignalQuality", None))
+                except Exception:
+                    print("No signal?")
+
             signal = None
             if False:
                 try:
