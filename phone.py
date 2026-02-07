@@ -26,6 +26,8 @@ class Phone:
 
     def __init__(self):
         self.bus = pydbus.SystemBus()
+
+    def init_sess(self):
         self.sess = pydbus.SessionBus()
 
     # --- Battery ---
@@ -81,17 +83,19 @@ class Phone:
         iface.Set("org.sigxcpu.feedbackd", "theme", value)
 
     # --- Mobile network ---
-    # Untested / broken
+    # Works as root
     def get_mobile_info(self):
         mm = self.bus.get("org.freedesktop.ModemManager1")
         for modem_path in mm.GetManagedObjects():
             modem = self.bus.get(".ModemManager1", modem_path)
-            operator = getattr(modem.Modem3gpp, "OperatorName", None)
+            print("modem ", modem)
+            operator = getattr(modem, "OperatorName", None)
             signal = None
-            try:
-                signal = modem.Signal.Get()["rssi"]
-            except Exception as e:
-                return {"error": str(e)}
+            if False:
+                try:
+                    signal = modem.Signal.Get()["rssi"]
+                except Exception as e:
+                    return {"error": str(e)}
             return {"operator": operator, "signal_strength": signal}
         return None
 
@@ -227,6 +231,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "bat":
     sys.exit(0)
 
 def full():
+    phone.init_sess()
     print("Battery:", phone.get_battery_info())
     phone.set_vibration(True)
 #    print("Mobile:", phone.get_mobile_info())
@@ -240,4 +245,16 @@ def full():
     # full, quiet, silent
 #    phone.set_feedback_theme("full")
 
-full()
+def as_root():
+    print("Battery:", phone.get_battery_info())
+    print("Mobile:", phone.get_mobile_info())
+    print("WiFi:", phone.get_wifi_info())
+#    print("Silent mode:", phone.get_silent_mode())
+#    print("Notifications:", phone.get_notifications())
+#    print("Location:", phone.get_location())
+    print("Hardware sensors:", phone.get_hardware_sensors())
+    # full, quiet, silent
+#    phone.set_feedback_theme("full")
+
+#full()
+as_root()
