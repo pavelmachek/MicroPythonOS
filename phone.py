@@ -120,6 +120,19 @@ class Phone:
             print(v)
 
             # Fails with no signal; but has even timing-advance info (I guess only when transmitting)
+            # It also seems to have neighbouring cells!
+            """
+            Field	Meaning	Example
+            operator-id	MCC+MNC, identifies mobile operator	23003
+            serving	Whether device is currently connected to this cell	True
+            physical-ci	LTE Physical Cell ID (PCI)	12
+            ci	LTE Cell Identity	XXXXXX
+            tac	Tracking Area Code	XXXX
+            earfcn	LTE frequency channel	XXXX
+            cell-type	Cell type code (macro/micro/etc.)	5
+            rsrp	Signal strength (dBm)	-122.7
+            rsrq	Signal quality (dB)	-17.0
+            """
             try: 
                 v = modem.GetCellInfo()
             except:
