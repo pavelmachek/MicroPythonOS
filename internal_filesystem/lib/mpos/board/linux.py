@@ -43,7 +43,7 @@ TFT_VER_RES=240
 #TFT_VER_RES=1080
 
 # PinePhone
-if False:
+if True:
     TFT_HOR_RES=360
     TFT_VER_RES=640
 

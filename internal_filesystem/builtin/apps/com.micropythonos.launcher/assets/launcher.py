@@ -122,6 +122,10 @@ class Launcher(Activity):
             label.align(lv.ALIGN.BOTTOM_MID, 0, 0)
             label.set_style_text_align(lv.TEXT_ALIGN.CENTER, lv.PART.MAIN)
 
+            #AppManager.start_app("cz.ucw.pavel.calendar")
+            #AppManager.start_app("cz.ucw.pavel.columns")
+            AppManager.start_app("com.micropythonos.showbattery")
+
             # ----- events --------------------------------------------------
             app_cont.add_event_cb(lambda e, fullname=app.fullname: AppManager.start_app(fullname),lv.EVENT.CLICKED, None)
             app_cont.add_event_cb(lambda e, cont=app_cont: self.focus_app_cont(cont),lv.EVENT.FOCUSED, None)
