@@ -222,7 +222,7 @@ class Phone:
 # login1.Hibernate(False)
 
 phone = Phone()
-if sys.argv[1] == "bat":
+if len(sys.argv) > 1 and sys.argv[1] == "bat":
     print(json.dumps(phone.get_battery_info()))
     sys.exit(0)
 
@@ -233,9 +233,11 @@ def full():
     print("WiFi:", phone.get_wifi_info())
 #    print("Silent mode:", phone.get_silent_mode())
 #    print("Notifications:", phone.get_notifications())
-#    print("Location:", phone.get_location())
+    print("Location:", phone.get_location())
     print("Hardware sensors:", phone.get_hardware_sensors())
     print("Screen lock:", phone.get_screen_lock())
     phone.set_vibration(False)
     # full, quiet, silent
 #    phone.set_feedback_theme("full")
+
+full()
