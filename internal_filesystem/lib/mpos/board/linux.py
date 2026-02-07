@@ -100,10 +100,26 @@ except Exception as e:
 
 # Simulated battery voltage ADC measuring
 from mpos import BatteryManager
+import os
+import json
+
+TMP = "/tmp/cmd.json"
+
+
+def run_cmd_json(cmd):
+    rc = os.system(cmd + " > " + TMP)
+    if rc != 0:
+        raise RuntimeError("command failed")
+
+    with open(TMP, "r") as f:
+        data = f.read().strip()
+
+    return json.loads(data)
 
 def adc_to_voltage(adc_value):
     """Convert simulated ADC value to voltage."""
-    return adc_value * (3.3 / 4095) * 2
+    run_cmd_json("/home/mobian/g/MicroPythonOS/phone.py bat")
+    return 3.8
 
 BatteryManager.init_adc(999, adc_to_voltage)
 
@@ -169,21 +185,7 @@ CameraManager.add_camera(CameraManager.Camera(
 
 import sys
 import time
-import os
-import json
 
-TMP = "/tmp/cmd.json"
-
-
-def run_cmd_json(cmd):
-    rc = os.system(cmd + " > " + TMP)
-    if rc != 0:
-        raise RuntimeError("command failed")
-
-    with open(TMP, "r") as f:
-        data = f.read().strip()
-
-    return json.loads(data)
 
 data = run_cmd_json("echo '{\"percent\": 87, \"voltage\": 3.95}'")
 print(data)
