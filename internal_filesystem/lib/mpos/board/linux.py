@@ -42,6 +42,11 @@ TFT_VER_RES=240
 #TFT_HOR_RES=1920
 #TFT_VER_RES=1080
 
+# PinePhone
+if False:
+    TFT_HOR_RES=360
+    TFT_VER_RES=640
+
 bus = lcd_bus.SDLBus(flags=0)
 
 buf1 = bus.allocate_framebuffer(TFT_HOR_RES * TFT_VER_RES * 2, 0)
@@ -161,6 +166,33 @@ CameraManager.add_camera(CameraManager.Camera(
     apply_settings=apply_cam_settings
 ))
 
+
+import sys
+import time
+import os
+import json
+
+TMP = "/tmp/cmd.json"
+
+
+def run_cmd_json(cmd):
+    rc = os.system(cmd + " > " + TMP)
+    if rc != 0:
+        raise RuntimeError("command failed")
+
+    with open(TMP, "r") as f:
+        data = f.read().strip()
+
+    return json.loads(data)
+
+data = run_cmd_json("echo '{\"percent\": 87, \"voltage\": 3.95}'")
+print(data)
+
+print("Parsed:", data)
+print("Percent:", data["percent"])
+
+
+# sys.exit(0)
 
 print("linux.py finished")
 
