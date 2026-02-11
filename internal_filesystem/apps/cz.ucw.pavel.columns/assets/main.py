@@ -64,13 +64,44 @@ class Main(Activity):
         self.screen = lv.obj()
         self.screen.remove_flag(lv.obj.FLAG.SCROLLABLE)
 
+        vert = 100
+
+        score = lv.label(self.screen)
+        score.align(lv.ALIGN.TOP_LEFT, 5, 15)
+        score.set_text("Score")
+        self.lb_score = score
+
+        btn_left = lv.button(self.screen)
+        btn_left.set_size(30, vert)
+        btn_left.align(lv.ALIGN.BOTTOM_LEFT, 5, -5-vert)
+        btn_left.add_event_cb(lambda e: self.move(0), lv.EVENT.CLICKED, None)
+        lc = lv.label(btn_left)
+        lc.set_text("<")
+        lc.center()
+
+        btn_right = lv.button(self.screen)
+        btn_right.set_size(30, vert)
+        btn_right.align(lv.ALIGN.BOTTOM_RIGHT, -5, -5-vert)
+        btn_right.add_event_cb(lambda e: self.move(1), lv.EVENT.CLICKED, None)
+        lc = lv.label(btn_right)
+        lc.set_text(">")
+        lc.center()
+
+        btn_rotate = lv.button(self.screen)
+        btn_rotate.set_size(30, vert)
+        btn_rotate.align(lv.ALIGN.BOTTOM_RIGHT, -5, -5-5-vert-vert)
+        btn_rotate.add_event_cb(lambda e: self.rotate(), lv.EVENT.CLICKED, None)
+        lc = lv.label(btn_rotate)
+        lc.set_text("R")
+        lc.center()
+        
         d = lv.display_get_default()
         self.SCREEN_WIDTH = d.get_horizontal_resolution()
         self.SCREEN_HEIGHT = d.get_vertical_resolution()
 
         self.CELL = min(
-            self.SCREEN_WIDTH // self.COLS,
-            self.SCREEN_HEIGHT // self.ROWS
+            self.SCREEN_WIDTH // (self.COLS + 1),
+            self.SCREEN_HEIGHT // (self.ROWS + 1)
         )
 
         board_x = (self.SCREEN_WIDTH - self.CELL * self.COLS) // 2
@@ -101,8 +132,12 @@ class Main(Activity):
         
         self.setContentView(self.screen)
 
+        self.new_game()
         self.spawn_piece()
+        
 
+    def new_game(self):
+        self.score = 0
     # ---------------------------------------------------------------------
 
     def onResume(self, screen):
@@ -192,6 +227,8 @@ class Main(Activity):
             return
 
         print("Score: ", score)
+        self.score += score
+        self.lb_score.set_text("%d" % self.score)
         for r, c in to_clear:
             self.board[r][c] = self.EMPTY
 
@@ -236,6 +273,7 @@ class Main(Activity):
     # ---------------------------------------------------------------------
 
     def on_touch(self, e):
+        return
         print("Touch event")
         p = lv.indev_get_act().get_point()
         x = p.x
