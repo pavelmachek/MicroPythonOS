@@ -3,6 +3,7 @@ import math
 import time
 import uhashlib
 import ubinascii
+import os
 
 from mpos import AppearanceManager, AppManager, Activity, DisplayMetrics
 
@@ -138,8 +139,11 @@ class Launcher(Activity):
         end = time.ticks_ms()
         print(f"Redraw icons took: {end-start}ms (full rebuild)")
 
-        #AppManager.start_app("cz.ucw.pavel.calendar")
-        AppManager.start_app("cz.ucw.pavel.columns")
+        v = os.getenv('RUN')
+        if v:
+            AppManager.start_app(v)
+        "cz.ucw.pavel.calendar"
+        #AppManager.start_app("cz.ucw.pavel.columns")
         #AppManager.start_app("com.micropythonos.showbattery")
 
     # ------------------------------------------------------------------
