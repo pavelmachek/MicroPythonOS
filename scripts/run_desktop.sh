@@ -48,7 +48,7 @@ else
 	echo "Running on $os_name"
 	binary="$scriptdir"/../lvgl_micropython/build/lvgl_micropy_unix
 fi
-binary="$scriptdir"/../../MicroPythonOS_amd64_linux_0.7.1.elf
+#binary="$scriptdir"/../../MicroPythonOS_amd64_linux_0.7.1.elf
 
 binary=$(readlink -f "$binary")
 chmod +x "$binary"
