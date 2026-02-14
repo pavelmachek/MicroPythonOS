@@ -730,8 +730,6 @@ class NavTarget:
 class Main(Activity):
     def __init__(self):
         super().__init__()
-        uart_id=1
-        baud=9600
         track_file="track.egt"
         self.gps = GPSState()
         self.parser = NMEAParser(self.gps)
@@ -746,9 +744,6 @@ class Main(Activity):
         self.last_track_add_ms = 0
 
         self.uart = None
-        if UART:
-            # Adjust pins if needed for your board
-            self.uart = UART(uart_id, baudrate=baud, timeout=50)
 
         # Default nav point (Prague center) - change as desired
         # (Reality filter: this is just a reasonable example coordinate.)
@@ -974,15 +969,6 @@ class Main(Activity):
             self.handle_buttons()
             self.draw()
             time.sleep_ms(50)
-
-
-#def main():
-#    app = GPSApp(uart_id=1, baud=9600, track_file="track.egt")
-#    app.run_forever()
-
-
-#if __name__ == "__main__":
-#    main()
 
 TMP = "/tmp/cmd.json"
 
