@@ -785,9 +785,16 @@ def dbus_json(cmd):
     return run_cmd_json("sudo /home/mobian/g/MicroPythonOS/phone.py " + cmd)
 
 class LocationManager:
-    def get_position(self):
+    def poll(self):
         v = dbus_json("loc")
         print(v)
+        self.loc = v
+        
+    def get_cellid(self):
+        return self.loc["1"]
+
+    def get_nmea(self):
+        return self.loc["4"]
 
 lm = LocationManager()
 
@@ -801,8 +808,8 @@ class Main(Activity):
 
         score = lv.label(self.screen)
         score.align(lv.ALIGN.TOP_LEFT, 5, 35)
-        score.set_text("Information here")
-	self.lb_score = score
+        score.set_text("Information here\nphone loc: XXX\nnmea: XXX")
+	self.raw_data = score
 
         #score.set_text("Score")
         #self.lb_score = score
@@ -828,4 +835,8 @@ class Main(Activity):
             
     def tick(self, t):
 	print("Tick!")
-        print(lm.get_position())
+        lm.poll()
+        cellid = lm.get_cellid()
+        nmea = lm.get_nmea()
+        self.raw_data.set_text(f"Cell id: {cellid}\nNMEA: {nmea}")
+
