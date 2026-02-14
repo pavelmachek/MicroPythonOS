@@ -775,6 +775,12 @@ class Main(Activity):
     def onCreate(self):
 	self.screen = lv.obj()
         self.screen.remove_flag(lv.obj.FLAG.SCROLLABLE)
+
+        score = lv.label(self.screen)
+        score.align(lv.ALIGN.TOP_LEFT, 5, 35)
+        score.set_text("Information here")
+	self.lb_score = score
+
         #score.set_text("Score")
         #self.lb_score = score
 
@@ -790,7 +796,7 @@ class Main(Activity):
         self.setContentView(self.screen)
 
     def onResume(self, screen):
-        self.timer = lv.timer_create(self.tick, self.FALL_INTERVAL, None)
+        self.timer = lv.timer_create(self.tick, 3000, None)
 
     def onPause(self, screen):
         if self.timer:
@@ -799,3 +805,4 @@ class Main(Activity):
             
     def tick(self, t):
 	print("Tick!")
+        print(dbus_json("bat"))

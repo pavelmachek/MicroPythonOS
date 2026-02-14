@@ -116,9 +116,12 @@ def run_cmd_json(cmd):
 
     return json.loads(data)
 
+def dbus_json(cmd):
+    return run_cmd_json("/home/mobian/g/MicroPythonOS/phone.py " + cmd)
+
 def adc_to_voltage(adc_value):
     """Convert simulated ADC value to voltage."""
-    v = run_cmd_json("/home/mobian/g/MicroPythonOS/phone.py bat")
+    v = dbus_json("bat")
     return 3.2 + v['percentage']/100
 
 BatteryManager.init_adc(999, adc_to_voltage)
