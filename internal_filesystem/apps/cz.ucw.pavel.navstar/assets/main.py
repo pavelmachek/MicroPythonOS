@@ -796,6 +796,15 @@ class LocationManager:
     def get_nmea(self):
         return self.loc["4"]
 
+    def parse(self):
+        self.gps = GPSState()
+        self.parser = NMEAParser(self.gps)
+        nmea = self.get_nmea()
+        lines = nmea.split('\n')
+        for line in lines:
+            print("line", line)
+            self.parser.feed_line(line)
+
 lm = LocationManager()
 
 class Main(Activity):
@@ -838,5 +847,6 @@ class Main(Activity):
         lm.poll()
         cellid = lm.get_cellid()
         nmea = lm.get_nmea()
-        self.raw_data.set_text(f"Cell id: {cellid}\nNMEA: {nmea}")
+        lm.parse()
+        self.raw_data.set_text(f"Cell id: {cellid}\nLat / lon: {lm.gps.lat} / {lm.gps.lon}\nNMEA: {nmea}\n")
 
