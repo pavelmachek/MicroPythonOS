@@ -467,13 +467,10 @@ class UI:
     """
 
     def __init__(self):
-        import lvgl as lv
-
-        self.lv = lv
         self.page = 0
         self.pages = 3
 
-        self.scr = lv.scr_act()
+        self.scr = lv.obj()
         self.W = self.scr.get_width()
         self.H = self.scr.get_height()
 
@@ -496,7 +493,7 @@ class UI:
         # We assume 16bpp unless the port exposes a helper.
         self.bpp = 2
         self.buf = bytearray(self.W * self.draw_h * self.bpp)
-        self.canvas.set_buffer(self.buf, self.W, self.draw_h, lv.img.CF.TRUE_COLOR)
+        self.canvas.set_buffer(self.buf, self.W, self.draw_h, lv.COLOR_FORMAT.NATIVE)
 
         # Draw descriptors (reused)
         self._line_dsc = lv.draw_line_dsc_t()
@@ -510,14 +507,14 @@ class UI:
         self._rect_dsc.border_opa = lv.OPA.COVER
         self._rect_dsc.border_width = 1
         self._rect_dsc.border_color = lv.color_white()
-        self._rect_dsc.radius = lv.RADIUS.CIRCLE
+        #self._rect_dsc.radius = lv.RADIUS.CIRCLE
 
         self._fill_dsc = lv.draw_rect_dsc_t()
         self._fill_dsc.init()
         self._fill_dsc.bg_opa = lv.OPA.COVER
         self._fill_dsc.bg_color = lv.color_white()
         self._fill_dsc.border_width = 0
-        self._fill_dsc.radius = lv.RADIUS.CIRCLE
+        #self._fill_dsc.radius = lv.RADIUS.CIRCLE
 
         self._label_dsc = lv.draw_label_dsc_t()
         self._label_dsc.init()
@@ -540,7 +537,6 @@ class UI:
     # ----------------------------
 
     def _btn_cb(self, evt):
-        lv = self.lv
         code = evt.get_code()
         obj = evt.get_target()
 
@@ -558,12 +554,10 @@ class UI:
             self._ev_clear = True
 
     def _make_btn(self, parent, x, y, w, h, label, tag):
-        lv = self.lv
-
-        b = lv.btn(parent)
+        b = lv.button(parent)
         b.set_pos(x, y)
         b.set_size(w, h)
-        b.set_user_data(tag)
+        #b.set_user_data(tag)
         b.add_event_cb(self._btn_cb, lv.EVENT.ALL, None)
 
         l = lv.label(b)
@@ -573,8 +567,6 @@ class UI:
         return b
 
     def _build_buttons(self):
-        lv = self.lv
-
         margin = self.margin
         bar_h = self.bar_h
 
@@ -593,13 +585,10 @@ class UI:
     # ----------------------------
 
     def clear(self):
-        lv = self.lv
         # Fill canvas with black
-        self.canvas.fill_bg(lv.color_black(), lv.OPA.COVER)
+        self.canvas.fill_bg(lv.color_white(), lv.OPA.COVER)
 
     def text(self, x, y, s):
-        lv = self.lv
-
         # LVGL needs an area; we just give a wide one.
         a = lv.area_t()
         a.x1 = int(x)
@@ -610,8 +599,6 @@ class UI:
         self.canvas.draw_text(a, self._label_dsc, str(s))
 
     def line(self, x1, y1, x2, y2):
-        lv = self.lv
-
         p1 = lv.point_t()
         p2 = lv.point_t()
         p1.x = int(x1)
@@ -624,8 +611,6 @@ class UI:
     def circle(self, x, y, r):
         # LVGL canvas does not provide a "draw circle" primitive.
         # The correct workaround is drawing a rounded rect with radius=CIRCLE.
-        lv = self.lv
-
         a = lv.area_t()
         a.x1 = int(x - r)
         a.y1 = int(y - r)
@@ -635,8 +620,6 @@ class UI:
         self.canvas.draw_rect(a, self._rect_dsc)
 
     def fill_circle(self, x, y, r):
-        lv = self.lv
-
         a = lv.area_t()
         a.x1 = int(x - r)
         a.y1 = int(y - r)
@@ -705,12 +688,14 @@ class NavTarget:
 # App logic
 # ----------------------------
 
-class GPSApp:
-    def __init__(self, uart_id=1, baud=9600, track_file="track.egt"):
+class Main(Activity):
+    def __init__(self):
+        super().__init__()
+        uart_id=1
+        baud=9600
+        track_file="track.egt"
         self.gps = GPSState()
         self.parser = NMEAParser(self.gps)
-
-        self.ui = UI()
 
         self.track = Track()
         self.egt = EGTWriter(track_file)
@@ -729,6 +714,21 @@ class GPSApp:
         # Default nav point (Prague center) - change as desired
         # (Reality filter: this is just a reasonable example coordinate.)
         self.nav.set(50.087465, 14.421254, "PRAGUE")
+
+    def onCreate(self):
+        self.ui = UI()
+        self.setContentView(self.ui.scr)
+
+    def onResume(self, screen):
+        self.timer = lv.timer_create(self.tick, 3000, None)
+
+    def onPause(self, screen):
+        if self.timer:
+            self.timer.delete()
+            self.timer = None
+            
+    def tick(self, t):
+	print("Tick!")
 
     def toggle_recording(self):
         self.recording = not self.recording
@@ -983,7 +983,7 @@ class LocationManager:
 
 lm = LocationManager()
 
-class Main(Activity):
+class noMain(Activity):
     def __init__(self):
         super().__init__()
 
