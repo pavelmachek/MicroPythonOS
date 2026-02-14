@@ -456,7 +456,7 @@ class Track:
 # UI / display abstraction
 # ----------------------------
 
-class UI:
+class badUI:
     """
     LVGL UI using a single canvas for all drawing.
 
@@ -596,7 +596,7 @@ class UI:
         a.x2 = self.W - 1
         a.y2 = self.draw_h - 1
 
-        self.canvas.draw_text(a, self._label_dsc, str(s))
+        #self.canvas.draw_text(a, self._label_dsc, str(s))
 
     def line(self, x1, y1, x2, y2):
         p1 = lv.point_t()
@@ -659,6 +659,271 @@ class UI:
             self._ev_clear = False
             return True
         return False
+
+class UI:
+    """
+    LVGL canvas + layer drawing UI.
+
+    This matches ports where:
+      - lv.canvas has init_layer() / finish_layer()
+      - primitives are drawn via lv.draw_* into lv.layer_t
+    """
+
+    def __init__(self):
+        import lvgl as lv
+
+        self.lv = lv
+        self.page = 0
+        self.pages = 3
+
+        scr = lv.obj()        
+        self.scr = scr
+
+        # Screen size
+        self.W = scr.get_width()
+        self.H = scr.get_height()
+
+        # Bottom button bar
+        self.margin = 2
+        self.bar_h = 26
+
+        # Canvas drawing area (everything above button bar)
+        self.draw_w = self.W
+        self.draw_h = self.H - (self.bar_h + self.margin * 2)
+
+        # Canvas
+        self.canvas = lv.canvas(scr)
+        self.canvas.set_size(self.draw_w, self.draw_h)
+        self.canvas.align(lv.ALIGN.TOP_LEFT, 0, 0)
+        self.canvas.set_style_border_width(0, 0)
+
+        # Background: white (change if you want dark theme)
+        self.canvas.set_style_bg_color(lv.color_white(), lv.PART.MAIN)
+
+        # Buffer: your working example uses 4 bytes/pixel
+        # Reality filter: this depends on LV_COLOR_DEPTH; but your example proves it works.
+        self.buf = bytearray(self.draw_w * self.draw_h * 4)
+        self.canvas.set_buffer(self.buf, self.draw_w, self.draw_h, lv.COLOR_FORMAT.NATIVE)
+
+        # Layer used for draw engine
+        self.layer = lv.layer_t()
+        self.canvas.init_layer(self.layer)
+
+        # One-shot events
+        self._ev_next = False
+        self._ev_rec = False
+        self._ev_nav = False
+        self._ev_clear = False
+
+        # Persistent draw descriptors (avoid allocations)
+        self._line_dsc = lv.draw_line_dsc_t()
+        lv.draw_line_dsc_t.init(self._line_dsc)
+        self._line_dsc.width = 1
+        self._line_dsc.color = lv.color_black()
+        self._line_dsc.round_end = 1
+        self._line_dsc.round_start = 1
+
+        self._label_dsc = lv.draw_label_dsc_t()
+        lv.draw_label_dsc_t.init(self._label_dsc)
+        self._label_dsc.color = lv.color_black()
+        self._label_dsc.font = lv.font_montserrat_14
+
+        self._rect_dsc = lv.draw_rect_dsc_t()
+        lv.draw_rect_dsc_t.init(self._rect_dsc)
+        self._rect_dsc.bg_opa = lv.OPA.TRANSP
+        self._rect_dsc.border_opa = lv.OPA.COVER
+        self._rect_dsc.border_width = 1
+        self._rect_dsc.border_color = lv.color_black()
+        #self._rect_dsc.radius = lv.RADIUS.CIRCLE
+
+        self._fill_dsc = lv.draw_rect_dsc_t()
+        lv.draw_rect_dsc_t.init(self._fill_dsc)
+        self._fill_dsc.bg_opa = lv.OPA.COVER
+        self._fill_dsc.bg_color = lv.color_black()
+        self._fill_dsc.border_width = 0
+        #self._fill_dsc.radius = lv.RADIUS.CIRCLE
+
+        # Build buttons
+        self._build_buttons()
+
+        # Clear once
+        self.clear()
+
+    # ----------------------------
+    # Button bar
+    # ----------------------------
+
+    def _btn_cb(self, evt):
+        lv = self.lv
+        if evt.get_code() != lv.EVENT.CLICKED:
+            return
+        obj = evt.get_target()
+        tag = obj.get_user_data()
+
+        if tag == 1:
+            self._ev_next = True
+        elif tag == 2:
+            self._ev_rec = True
+        elif tag == 3:
+            self._ev_nav = True
+        elif tag == 4:
+            self._ev_clear = True
+
+    def _make_btn(self, parent, x, y, w, h, label, tag):
+        lv = self.lv
+
+        b = lv.button(parent)
+        b.set_pos(x, y)
+        b.set_size(w, h)
+        #b.set_user_data(tag)
+        b.add_event_cb(self._btn_cb, lv.EVENT.ALL, None)
+
+        l = lv.label(b)
+        l.set_text(label)
+        l.center()
+
+        return b
+
+    def _build_buttons(self):
+        lv = self.lv
+
+        margin = self.margin
+        y = self.H - self.bar_h - margin
+
+        w = (self.W - margin * 5) // 4
+        h = self.bar_h
+        x0 = margin
+
+        self.btn_next = self._make_btn(self.scr, x0 + (w + margin) * 0, y, w, h, "NEXT", 1)
+        self.btn_rec  = self._make_btn(self.scr, x0 + (w + margin) * 1, y, w, h, "REC",  2)
+        self.btn_nav  = self._make_btn(self.scr, x0 + (w + margin) * 2, y, w, h, "NAV",  3)
+        self.btn_clr  = self._make_btn(self.scr, x0 + (w + margin) * 3, y, w, h, "CLR",  4)
+
+    # ----------------------------
+    # Layer lifecycle
+    # ----------------------------
+
+    def _begin(self):
+        # Start drawing into the layer
+        self.canvas.init_layer(self.layer)
+
+    def _end(self):
+        # Commit drawing
+        self.canvas.finish_layer(self.layer)
+
+    # ----------------------------
+    # Public API: drawing
+    # ----------------------------
+
+    def clear(self):
+        lv = self.lv
+        # Clear the canvas background
+        self.canvas.fill_bg(lv.color_white(), lv.OPA.COVER)
+
+    def text(self, x, y, s):
+        lv = self.lv
+
+        self._begin()
+
+        dsc = lv.draw_label_dsc_t()
+        lv.draw_label_dsc_t.init(dsc)
+        dsc.text = str(s)
+        dsc.font = lv.font_montserrat_14
+        dsc.color = lv.color_black()
+
+        area = lv.area_t()
+        area.x1 = x
+        area.y1 = y
+        area.x2 = x + 300
+        area.y2 = y + 30
+
+        lv.draw_label(self.layer, dsc, area)
+
+        self._end()
+
+    def line(self, x1, y1, x2, y2):
+        lv = self.lv
+
+        self._begin()
+
+        dsc = self._line_dsc
+        dsc.p1 = lv.point_precise_t()
+        dsc.p2 = lv.point_precise_t()
+        dsc.p1.x = int(x1)
+        dsc.p1.y = int(y1)
+        dsc.p2.x = int(x2)
+        dsc.p2.y = int(y2)
+
+        lv.draw_line(self.layer, dsc)
+
+        self._end()
+
+    def circle(self, x, y, r):
+        # Rounded rectangle trick (works everywhere)
+        lv = self.lv
+
+        self._begin()
+
+        a = lv.area_t()
+        a.x1 = int(x - r)
+        a.y1 = int(y - r)
+        a.x2 = int(x + r)
+        a.y2 = int(y + r)
+
+        lv.draw_rect(self.layer, self._rect_dsc, a)
+
+        self._end()
+
+    def fill_circle(self, x, y, r):
+        lv = self.lv
+
+        self._begin()
+
+        a = lv.area_t()
+        a.x1 = int(x - r)
+        a.y1 = int(y - r)
+        a.x2 = int(x + r)
+        a.y2 = int(y + r)
+
+        lv.draw_rect(self.layer, self._fill_dsc, a)
+
+        self._end()
+
+    def update(self):
+        # Nothing needed; drawing is committed per primitive.
+        # If you want, you can change the implementation so that:
+        # - draw ops happen between clear() and update()
+        # But then you must ensure the app calls update() once per frame.
+        pass
+
+    # ----------------------------
+    # Public API: button polling
+    # ----------------------------
+
+    def button_next_page(self):
+        if self._ev_next:
+            self._ev_next = False
+            return True
+        return False
+
+    def button_toggle_record(self):
+        if self._ev_rec:
+            self._ev_rec = False
+            return True
+        return False
+
+    def button_set_nav_target(self):
+        if self._ev_nav:
+            self._ev_nav = False
+            return True
+        return False
+
+    def button_clear_track(self):
+        if self._ev_clear:
+            self._ev_clear = False
+            return True
+        return False
+
 
 # ----------------------------
 # Navigation target
@@ -728,7 +993,7 @@ class Main(Activity):
             self.timer = None
             
     def tick(self, t):
-	print("Tick!")
+        self.draw_page_sky()
 
     def toggle_recording(self):
         self.recording = not self.recording
