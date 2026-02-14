@@ -762,7 +762,13 @@ class Main(Activity):
             self.timer = None
             
     def tick(self, t):
-        self.draw_page_nav()
+        lm.poll()
+        nmea = lm.get_nmea()
+        lines = nmea.split('\n')
+        for line in lines:
+            print("line", line)
+            self.parser.feed_line(line)
+        self.draw_page_sky()
 
     def toggle_recording(self):
         self.recording = not self.recording
