@@ -461,9 +461,6 @@ class UI:
     """
 
     def __init__(self):
-        import lvgl as lv
-
-        self.lv = lv
         self.page = 0
         self.pages = 3
 
@@ -545,7 +542,6 @@ class UI:
     # ----------------------------
 
     def _btn_cb(self, evt):
-        lv = self.lv
         if evt.get_code() != lv.EVENT.CLICKED:
             return
         obj = evt.get_target()
@@ -561,8 +557,6 @@ class UI:
             self._ev_clear = True
 
     def _make_btn(self, parent, x, y, w, h, label, tag):
-        lv = self.lv
-
         b = lv.button(parent)
         b.set_pos(x, y)
         b.set_size(w, h)
@@ -576,8 +570,6 @@ class UI:
         return b
 
     def _build_buttons(self):
-        lv = self.lv
-
         margin = self.margin
         y = self.H - self.bar_h - margin
 
@@ -607,13 +599,10 @@ class UI:
     # ----------------------------
 
     def clear(self):
-        lv = self.lv
         # Clear the canvas background
         self.canvas.fill_bg(lv.color_white(), lv.OPA.COVER)
 
     def text(self, x, y, s):
-        lv = self.lv
-
         self._begin()
 
         dsc = lv.draw_label_dsc_t()
@@ -633,8 +622,6 @@ class UI:
         self._end()
 
     def line(self, x1, y1, x2, y2):
-        lv = self.lv
-
         self._begin()
 
         dsc = self._line_dsc
@@ -651,8 +638,6 @@ class UI:
 
     def circle(self, x, y, r):
         # Rounded rectangle trick (works everywhere)
-        lv = self.lv
-
         self._begin()
 
         a = lv.area_t()
@@ -666,8 +651,6 @@ class UI:
         self._end()
 
     def fill_circle(self, x, y, r):
-        lv = self.lv
-
         self._begin()
 
         a = lv.area_t()
