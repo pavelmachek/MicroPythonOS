@@ -7,6 +7,7 @@ micropythonos, give me code to parse nmea data from gps, display lat/lon/speed/.
 
 import time
 import os
+import json
 
 try:
     import lvgl as lv
@@ -767,6 +768,28 @@ class GPSApp:
 
 #if __name__ == "__main__":
 #    main()
+
+TMP = "/tmp/cmd.json"
+
+def run_cmd_json(cmd):
+    rc = os.system(cmd + " > " + TMP)
+    if rc != 0:
+        raise RuntimeError("command failed")
+
+    with open(TMP, "r") as f:
+        data = f.read().strip()
+
+    return json.loads(data)
+
+def dbus_json(cmd):
+    return run_cmd_json("sudo /home/mobian/g/MicroPythonOS/phone.py " + cmd)
+
+class LocationManager:
+    def get_position():
+        v = dbus_json("loc")
+        print(v)
+
+lm = LocationManager()
 
 class Main(Activity):
     def __init__(self):

@@ -299,9 +299,19 @@ class Phone:
 # login1.Hibernate(False)
 
 phone = Phone()
-if len(sys.argv) > 1 and sys.argv[1] == "bat":
-    print(json.dumps(phone.get_battery_info()))
-    sys.exit(0)
+
+def handle_cmd(v):
+    if v == "bat":
+        print(json.dumps(phone.get_battery_info()))
+        sys.exit(0)
+    if v == "loc":
+        print(json.dumps(phone.get_mobile_info()))
+        sys.exit(0)
+    print("Unknown command "+v)
+    sys.exit(1)
+
+if len(sys.argv) > 1:
+    handle_cmd(sys.argv[1])
 
 def full():
     phone.init_sess()
