@@ -85,6 +85,7 @@ class Phone:
     # --- Mobile network ---
     # Works as root
     def get_mobile_info(self):
+        loc = None
         mm = self.bus.get("org.freedesktop.ModemManager1")
         for modem_path in mm.GetManagedObjects():
             modem = self.bus.get(".ModemManager1", modem_path)
@@ -111,7 +112,8 @@ class Phone:
             tac = getattr(modem, "TrackingAreaCode", None)
             print("Lac...:", lac, cid, tac)
 
-            print("Location:", getattr(modem, "Location", None))
+            loc = getattr(modem, "Location", None)
+            print("Location:", loc)
 
             v = modem.Setup(0x027, False)
             print("Location setup? ", v)
@@ -170,7 +172,15 @@ class Phone:
                 except Exception as e:
                     return {"error": str(e)}
             return {"operator": operator, "signal_strength": signal}
-        return None
+        return loc
+
+    def get_mobile_loc(self):
+        loc = None
+        mm = self.bus.get("org.freedesktop.ModemManager1")
+        for modem_path in mm.GetManagedObjects():
+            modem = self.bus.get(".ModemManager1", modem_path)
+            loc = modem.GetLocation()
+        return loc
 
     # --- WiFi ---
     def get_wifi_info(self):
@@ -305,7 +315,7 @@ def handle_cmd(v):
         print(json.dumps(phone.get_battery_info()))
         sys.exit(0)
     if v == "loc":
-        print(json.dumps(phone.get_mobile_info()))
+        print(json.dumps(phone.get_mobile_loc()))
         sys.exit(0)
     print("Unknown command "+v)
     sys.exit(1)

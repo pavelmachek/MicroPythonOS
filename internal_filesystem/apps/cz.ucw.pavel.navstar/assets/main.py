@@ -785,7 +785,7 @@ def dbus_json(cmd):
     return run_cmd_json("sudo /home/mobian/g/MicroPythonOS/phone.py " + cmd)
 
 class LocationManager:
-    def get_position():
+    def get_position(self):
         v = dbus_json("loc")
         print(v)
 
@@ -828,4 +828,4 @@ class Main(Activity):
             
     def tick(self, t):
 	print("Tick!")
-        print(dbus_json("bat"))
+        print(lm.get_position())
