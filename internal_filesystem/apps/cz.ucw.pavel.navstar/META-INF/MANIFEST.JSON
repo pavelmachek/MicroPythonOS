@@ -1,0 +1,23 @@
+{
+"name": "Navstar",
+"publisher": "micropythonos",
+"short_description": "Navstar",
+"long_description": "Simple navstar app.",
+"icon_url": "https://apps.micropythonos.com/apps/cz.ucw.pavel.columns/icons/com.micropythonos.helloworld_0.0.5_64x64.png",
+"fullname": "cz.ucw.pavel.navstar",
+"version": "0.0.1",
+"category": "utilities",
+"activities": [
+    {
+      "entrypoint": "assets/main.py",
+      "classname": "Main",
+      "intent_filters": [
+        {
+          "action": "main",
+          "category": "utilities"
+        }
+      ]
+    }
+  ]
+}
+
