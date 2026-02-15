@@ -45,7 +45,7 @@ TFT_VER_RES=240
 # PinePhone
 if True:
     TFT_HOR_RES=360
-    TFT_VER_RES=640
+    TFT_VER_RES=665
 
 bus = lcd_bus.SDLBus(flags=0)
 
