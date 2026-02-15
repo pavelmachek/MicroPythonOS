@@ -823,37 +823,38 @@ class Main(Activity):
 
         fix = "FIX" if gps.has_fix() else "NOFIX"
         rec = "REC" if self.recording else "----"
+        st = 14
         ui.text(0, 0, "%s  %s  sats:%d" % (fix, rec, gps.sats_used))
 
         if gps.lat is not None and gps.lon is not None:
-            ui.text(0, 12, "Lat: %.6f" % gps.lat)
-            ui.text(0, 24, "Lon: %.6f" % gps.lon)
+            ui.text(0, st, "Lat: %.6f" % gps.lat)
+            ui.text(0, st*2, "Lon: %.6f" % gps.lon)
         else:
-            ui.text(0, 12, "Lat: ---")
-            ui.text(0, 24, "Lon: ---")
+            ui.text(0, st, "Lat: ---")
+            ui.text(0, st*2, "Lon: ---")
 
         if gps.speed_kmh is not None:
-            ui.text(0, 36, "Speed: %.1f km/h" % gps.speed_kmh)
+            ui.text(0, st*3, "Speed: %.1f km/h" % gps.speed_kmh)
         else:
-            ui.text(0, 36, "Speed: ---")
+            ui.text(0, st*3, "Speed: ---")
 
         if gps.alt_m is not None:
-            ui.text(0, 48, "Alt: %.1f m" % gps.alt_m)
+            ui.text(0, st*4, "Alt: %.1f m" % gps.alt_m)
         else:
-            ui.text(0, 48, "Alt: ---")
+            ui.text(0, st*4, "Alt: ---")
 
         if gps.course_deg is not None:
-            ui.text(0, 60, "Head: %.0f deg" % gps.course_deg)
+            ui.text(0, st*5, "Head: %.0f deg" % gps.course_deg)
         else:
-            ui.text(0, 60, "Head: ---")
+            ui.text(0, st*5, "Head: ---")
 
-        ui.text(0, 72, "Track: %.3f km" % self.track.length_km)
+        ui.text(0, st*6, "Track: %.3f km" % self.track.length_km)
 
         if gps.hdop is not None:
-            ui.text(0, 84, "HDOP: %.1f" % gps.hdop)
+            ui.text(0, st*7, "HDOP: %.1f" % gps.hdop)
 
         if gps.time_hms:
-            ui.text(0, 96, "Time: %02d:%02d:%02d" % gps.time_hms)
+            ui.text(0, st*8, "Time: %02d:%02d:%02d" % gps.time_hms)
 
         ui.update()
 
@@ -865,9 +866,9 @@ class Main(Activity):
         ui.text(0, 0, "Sky view (GSV)")
 
         # Sky view circle
-        cx = 64
-        cy = 70
-        R = 45
+        cx = 160
+        cy = 160
+        R = 80
 
         ui.circle(cx, cy, R)
         ui.circle(cx, cy, int(R * 0.66))
@@ -905,42 +906,43 @@ class Main(Activity):
             ui.fill_circle(x, y, rr)
             count += 1
 
-        ui.text(0, 112, "SV: %d" % count)
+        ui.text(0, cy + R + 40, "SV: %d" % count)
         ui.update()
 
     def draw_page_nav(self):
         gps = self.gps
         ui = self.ui
+        st = 14
 
         ui.clear()
         ui.text(0, 0, "Navigation")
 
         if not self.nav.enabled:
-            ui.text(0, 12, "No target.")
+            ui.text(0, st, "No target.")
             ui.update()
             return
 
-        ui.text(0, 12, "To: %s" % self.nav.name)
-        ui.text(0, 24, "Tlat: %.6f" % self.nav.lat)
-        ui.text(0, 36, "Tlon: %.6f" % self.nav.lon)
+        ui.text(0, st, "To: %s" % self.nav.name)
+        ui.text(0, st*2, "Tlat: %.6f" % self.nav.lat)
+        ui.text(0, st*3, "Tlon: %.6f" % self.nav.lon)
 
         if gps.has_fix():
             dist = haversine_km(gps.lat, gps.lon, self.nav.lat, self.nav.lon)
             brg = bearing_deg(gps.lat, gps.lon, self.nav.lat, self.nav.lon)
 
-            ui.text(0, 52, "Dist: %.3f km" % dist)
-            ui.text(0, 64, "Bear: %.0f deg" % brg)
+            ui.text(0, st*5, "Dist: %.3f km" % dist)
+            ui.text(0, st*6, "Bear: %.0f deg" % brg)
 
             if gps.course_deg is not None:
                 rel = (brg - gps.course_deg + 360.0) % 360.0
                 if rel > 180.0:
                     rel -= 360.0
-                ui.text(0, 76, "Turn: %+d deg" % int(rel))
+                ui.text(0, st*7, "Turn: %+d deg" % int(rel))
 
         else:
-            ui.text(0, 52, "Waiting for fix...")
+            ui.text(0, st*5, "Waiting for fix...")
 
-        ui.text(0, 96, "Track: %.3f km" % self.track.length_km)
+        ui.text(0, st*9, "Track: %.3f km" % self.track.length_km)
         ui.update()
 
     def draw(self):
