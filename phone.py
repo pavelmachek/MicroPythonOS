@@ -17,6 +17,9 @@ Can you also get silent mode, pending notifications, and gps coordinates on requ
 run this with sudo to work around permission problems
 
 sudo apt install python3-pydbus
+
+sudo mmcli --list-modems
+sudo mmcli -m 6 --location-enable-gps-nmea --location-enable-gps-raw
 """
 
 

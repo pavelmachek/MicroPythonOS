@@ -541,12 +541,12 @@ class UI:
     # Button bar
     # ----------------------------
 
-    def _btn_cb(self, evt):
+    def _btn_cb(self, evt, tag):
         if evt.get_code() != lv.EVENT.CLICKED:
             return
         obj = evt.get_target()
-        tag = obj.get_user_data()
 
+        self.page = tag - 1
         if tag == 1:
             self._ev_next = True
         elif tag == 2:
@@ -560,8 +560,7 @@ class UI:
         b = lv.button(parent)
         b.set_pos(x, y)
         b.set_size(w, h)
-        #b.set_user_data(tag)
-        b.add_event_cb(self._btn_cb, lv.EVENT.ALL, None)
+        b.add_event_cb(lambda evt: self._btn_cb(evt, tag), lv.EVENT.ALL, None)
 
         l = lv.label(b)
         l.set_text(label)
@@ -764,11 +763,12 @@ class Main(Activity):
     def tick(self, t):
         lm.poll()
         nmea = lm.get_nmea()
-        lines = nmea.split('\n')
-        for line in lines:
-            print("line", line)
-            self.parser.feed_line(line)
-        self.draw_page_sky()
+        if nmea:
+            lines = nmea.split('\n')
+            for line in lines:
+                print("line", line)
+                self.parser.feed_line(line)
+        self.draw()
 
     def toggle_recording(self):
         self.recording = not self.recording
@@ -998,10 +998,14 @@ class LocationManager:
         self.loc = v
         
     def get_cellid(self):
-        return self.loc["1"]
+        if "1" in self.loc:
+            return self.loc["1"]
+        return None
 
     def get_nmea(self):
-        return self.loc["4"]
+        if "4" in self.loc:
+            return self.loc["4"]
+        return None
 
     def parse(self):
         self.gps = GPSState()
