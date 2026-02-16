@@ -769,14 +769,14 @@ class _IIODriver(_IMUDriver):
     Typical base path:
         /sys/bus/iio/devices/iio:device0
     """
-    base_path: str
+    accel_path: str
 
     def __init__(self):
-        self.base_path = self.find_iio_device_with_file("in_accel_x_raw")
-        print("path:", self.base_path)
+        self.accel_path = self.find_iio_device_with_file("in_accel_x_raw")
+        print("path:", self.accel_path)
 
     def _p(self, name: str):
-        return self.base_path + "/" + name
+        return self.accel_path + "/" + name
 
     def _exists(self, name):
         try:
@@ -827,7 +827,7 @@ class _IIODriver(_IMUDriver):
         return None
 
     def _read_text(self, name: str) -> str:
-        p = self.base_path + "/" + name
+        p = name
         print("Read: ", p)
         f = open(p, "r")
         try:
@@ -857,14 +857,14 @@ class _IIODriver(_IMUDriver):
           - in_temp_raw + in_temp_scale
         """
         if False: # os.path.exists(self._p("in_temp_input")):
-            v = self._read_float("in_temp_input")
+            v = self._read_float(self.accel_path + "/" + "in_temp_input")
             # Many drivers expose millidegree Celsius here.
             if abs(v) > 200:  # heuristic: 25000 means 25°C
                 return v / 1000.0
             return v
 
         # Fallback: raw + scale
-        return self._read_raw_scaled("in_temp_raw", "in_temp_scale")
+        return self._read_raw_scaled(self.accel_path + "/" + "in_temp_raw", self.accel_path + "/" + "in_temp_scale")
 
     def read_acceleration(self) -> tuple[float, float, float]:
         """
@@ -872,11 +872,11 @@ class _IIODriver(_IMUDriver):
         Common names:
           in_accel_{x,y,z}_raw + in_accel_scale
         """
-        scale_name = "in_accel_scale"
+        scale_name = self.accel_path + "/" +  "in_accel_scale"
 
-        ax = self._read_raw_scaled("in_accel_x_raw", scale_name)
-        ay = self._read_raw_scaled("in_accel_y_raw", scale_name)
-        az = self._read_raw_scaled("in_accel_z_raw", scale_name)
+        ax = self._read_raw_scaled(self.accel_path + "/" + "in_accel_x_raw", scale_name)
+        ay = self._read_raw_scaled(self.accel_path + "/" + "in_accel_y_raw", scale_name)
+        az = self._read_raw_scaled(self.accel_path + "/" + "in_accel_z_raw", scale_name)
 
         return (ax, ay, az)
 
@@ -886,11 +886,11 @@ class _IIODriver(_IMUDriver):
         Common names:
           in_anglvel_{x,y,z}_raw + in_anglvel_scale
         """
-        scale_name = "in_anglvel_scale"
+        scale_name = self.accel_path + "/" + "in_anglvel_scale"
 
-        gx = self._read_raw_scaled("in_anglvel_x_raw", scale_name)
-        gy = self._read_raw_scaled("in_anglvel_y_raw", scale_name)
-        gz = self._read_raw_scaled("in_anglvel_z_raw", scale_name)
+        gx = self._read_raw_scaled(self.accel_path + "/" + "in_anglvel_x_raw", scale_name)
+        gy = self._read_raw_scaled(self.accel_path + "/" + "in_anglvel_y_raw", scale_name)
+        gz = self._read_raw_scaled(self.accel_path + "/" + "in_anglvel_z_raw", scale_name)
 
         return (gx, gy, gz)
 
