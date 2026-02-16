@@ -153,6 +153,15 @@ from mpos import SensorManager
 # (On Linux desktop, this will fail gracefully but set _initialized flag)
 SensorManager.init_iio()
 
+# In app:
+if SensorManager.is_available():
+    accel = SensorManager.get_default_sensor(SensorManager.TYPE_ACCELEROMETER)
+    print(accel)
+    ax, ay, az = SensorManager.read_sensor_once(accel)  # Returns m/s²
+    print(ax, ay, az)
+    sys.exit(0)
+
+
 # === CAMERA HARDWARE ===
 
 def init_cam(width, height, colormode):

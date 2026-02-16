@@ -151,7 +151,7 @@ class SensorManager:
         return True
 
     def init_iio(self):
-        self._imu_driver = _IIODriver("/sys/bus/iio/devices/iio\:device1/")
+        self._imu_driver = _IIODriver("/sys/bus/iio/devices/iio:device1/")
         self._sensor_list = [
             Sensor(
                 name="Accelerometer",
@@ -267,7 +267,35 @@ class SensorManager:
             if sensor.type == sensor_type:
                 return sensor
         return None
-    
+
+    def read_sensor_once(self, sensor):
+        if sensor.type == TYPE_ACCELEROMETER:
+            if self._imu_driver:
+                ax, ay, az = self._imu_driver.read_acceleration()
+                if self._mounted_position == FACING_EARTH:
+                    az *= -1
+                return (ax, ay, az)
+        elif sensor.type == TYPE_GYROSCOPE:
+            if self._imu_driver:
+                return self._imu_driver.read_gyroscope()
+        elif sensor.type == TYPE_IMU_TEMPERATURE:
+            if self._imu_driver:
+                return self._imu_driver.read_temperature()
+        elif sensor.type == TYPE_SOC_TEMPERATURE:
+            if self._has_mcu_temperature:
+                import esp32
+                return esp32.mcu_temperature()
+        elif sensor.type == TYPE_TEMPERATURE:
+            # Generic temperature - return first available (backward compatibility)
+            if self._imu_driver:
+                temp = self._imu_driver.read_temperature()
+                if temp is not None:
+                    return temp
+            if self._has_mcu_temperature:
+                import esp32
+                return esp32.mcu_temperature()
+        return None
+
     def read_sensor(self, sensor):
         """Read sensor data synchronously.
 
@@ -298,32 +326,7 @@ class SensorManager:
 
             for attempt in range(max_retries):
                 try:
-                    if sensor.type == TYPE_ACCELEROMETER:
-                        if self._imu_driver:
-                            ax, ay, az = self._imu_driver.read_acceleration()
-                            if self._mounted_position == FACING_EARTH:
-                                az *= -1
-                            return (ax, ay, az)
-                    elif sensor.type == TYPE_GYROSCOPE:
-                        if self._imu_driver:
-                            return self._imu_driver.read_gyroscope()
-                    elif sensor.type == TYPE_IMU_TEMPERATURE:
-                        if self._imu_driver:
-                            return self._imu_driver.read_temperature()
-                    elif sensor.type == TYPE_SOC_TEMPERATURE:
-                        if self._has_mcu_temperature:
-                            import esp32
-                            return esp32.mcu_temperature()
-                    elif sensor.type == TYPE_TEMPERATURE:
-                        # Generic temperature - return first available (backward compatibility)
-                        if self._imu_driver:
-                            temp = self._imu_driver.read_temperature()
-                            if temp is not None:
-                                return temp
-                        if self._has_mcu_temperature:
-                            import esp32
-                            return esp32.mcu_temperature()
-                    return None
+                    return self.read_sensor_once(sensor)
                 except Exception as e:
                     error_msg = str(e)
                     # Retry if sensor data not ready, otherwise fail immediately
@@ -332,6 +335,7 @@ class SensorManager:
                         time.sleep_ms(retry_delay_ms)
                         continue
                     else:
+                        print("Exception reading sensor:", error_msg)
                         return None
 
             return None
@@ -769,11 +773,17 @@ class _IIODriver(_IMUDriver):
     def __init__(self, path):
         self.base_path = path
 
-    def _p(self, name: str) -> Path:
-        return Path(self.base_path) / name
+    def _p(self, name: str):
+        return self.base_path + "/" + name
 
     def _read_text(self, name: str) -> str:
-        return self._p(name).read_text(encoding="ascii").strip()
+        p = self.base_path + "/" + name
+        print("Read: ", p)
+        f = open(p, "r")
+        try:
+            return f.readline().strip()
+        finally:
+            f.close()
 
     def _read_float(self, name: str) -> float:
         return float(self._read_text(name))
@@ -790,8 +800,7 @@ class _IIODriver(_IMUDriver):
     # Public API (replacing I2C)
     # ----------------------------
 
-    @property
-    def temperature(self) -> float:
+    def read_temperature(self) -> float:
         """
         Tries common IIO patterns:
           - in_temp_input (already scaled, usually millidegree C)
@@ -807,8 +816,7 @@ class _IIODriver(_IMUDriver):
         # Fallback: raw + scale
         return self._read_raw_scaled("in_temp_raw", "in_temp_scale")
 
-    @property
-    def acceleration(self) -> tuple[float, float, float]:
+    def read_acceleration(self) -> tuple[float, float, float]:
         """
         Returns acceleration in m/s^2 if the kernel driver uses standard IIO scale.
         Common names:
@@ -822,8 +830,7 @@ class _IIODriver(_IMUDriver):
 
         return (ax, ay, az)
 
-    @property
-    def gyro(self) -> tuple[float, float, float]:
+    def read_gyroscope(self) -> tuple[float, float, float]:
         """
         Returns angular velocity in rad/s if the kernel driver uses standard IIO scale.
         Common names:
@@ -1039,7 +1046,7 @@ class _WsenISDSDriver(_IMUDriver):
 _original_methods = {}
 _methods_to_delegate = [
     'init', 'init_iio', 'is_available', 'get_sensor_list', 'get_default_sensor',
-    'read_sensor', 'calibrate_sensor', 'check_calibration_quality',
+    'read_sensor', 'read_sensor_once', 'calibrate_sensor', 'check_calibration_quality',
     'check_stationarity'
 ]
 
