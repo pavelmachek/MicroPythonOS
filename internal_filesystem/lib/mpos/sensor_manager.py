@@ -806,7 +806,7 @@ class _IIODriver(_IMUDriver):
           - in_temp_input (already scaled, usually millidegree C)
           - in_temp_raw + in_temp_scale
         """
-        if self._p("in_temp_input").exists():
+        if False: # os.path.exists(self._p("in_temp_input")):
             v = self._read_float("in_temp_input")
             # Many drivers expose millidegree Celsius here.
             if abs(v) > 200:  # heuristic: 25000 means 25°C
