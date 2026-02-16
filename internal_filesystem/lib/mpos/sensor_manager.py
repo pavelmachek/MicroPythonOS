@@ -155,6 +155,15 @@ class SensorManager:
         self._imu_driver = _IIODriver()
         self._sensor_list = [
             Sensor(
+                name="Magnetometer",
+                sensor_type=TYPE_MAGNETIC_FIELD,
+                vendor="Linux IIO",
+                version=1,
+                max_range="?",
+                resolution="?",
+                power_ma=0.2
+            ),
+            Sensor(
                 name="Accelerometer",
                 sensor_type=TYPE_ACCELEROMETER,
                 vendor="Linux IIO",
@@ -279,6 +288,9 @@ class SensorManager:
         elif sensor.type == TYPE_GYROSCOPE:
             if self._imu_driver:
                 return self._imu_driver.read_gyroscope()
+        elif sensor.type == TYPE_MAGNETIC_FIELD:
+            if self._imu_driver:
+                return self._imu_driver.read_magnetometer()
         elif sensor.type == TYPE_IMU_TEMPERATURE:
             if self._imu_driver:
                 return self._imu_driver.read_temperature()
@@ -741,6 +753,10 @@ class _IMUDriver:
         """Returns (x, y, z) in deg/s"""
         raise NotImplementedError
 
+    def read_magnetometer(self):
+        """Returns (x, y, z) in uT"""
+        raise NotImplementedError
+
     def read_temperature(self):
         """Returns temperature in °C"""
         raise NotImplementedError
@@ -770,10 +786,12 @@ class _IIODriver(_IMUDriver):
         /sys/bus/iio/devices/iio:device0
     """
     accel_path: str
+    mag_path: str
 
     def __init__(self):
         self.accel_path = self.find_iio_device_with_file("in_accel_x_raw")
-        print("path:", self.accel_path)
+        self.mag_path = self.find_iio_device_with_file("in_magn_x_raw")
+        print("path:", self.mag_path)
 
     def _p(self, name: str):
         return self.accel_path + "/" + name
@@ -891,6 +909,13 @@ class _IIODriver(_IMUDriver):
         gx = self._read_raw_scaled(self.accel_path + "/" + "in_anglvel_x_raw", scale_name)
         gy = self._read_raw_scaled(self.accel_path + "/" + "in_anglvel_y_raw", scale_name)
         gz = self._read_raw_scaled(self.accel_path + "/" + "in_anglvel_z_raw", scale_name)
+
+        return (gx, gy, gz)
+
+    def read_magnetometer(self) -> tuple[float, float, float]:
+        gx = self._read_raw_scaled(self.mag_path + "/" + "in_magn_x_raw", self.mag_path + "/" + "in_magn_x_scale")
+        gy = self._read_raw_scaled(self.mag_path + "/" + "in_magn_y_raw", self.mag_path + "/" + "in_magn_y_scale")
+        gz = self._read_raw_scaled(self.mag_path + "/" + "in_magn_z_raw", self.mag_path + "/" + "in_magn_z_scale")        
 
         return (gx, gy, gz)
 

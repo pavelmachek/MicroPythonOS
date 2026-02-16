@@ -154,12 +154,19 @@ from mpos import SensorManager
 SensorManager.init_iio()
 
 # In app:
-if False and SensorManager.is_available():
+if True and SensorManager.is_available():
     accel = SensorManager.get_default_sensor(SensorManager.TYPE_ACCELEROMETER)
     print(accel)
     ax, ay, az = SensorManager.read_sensor_once(accel)  # Returns m/s²
     print(ax, ay, az)
 
+    magn = SensorManager.get_default_sensor(SensorManager.TYPE_MAGNETIC_FIELD)
+    print(accel)
+    ax, ay, az = SensorManager.read_sensor_once(magn)
+    print(ax, ay, az)
+
+    os.exit(0)
+    
 # === CAMERA HARDWARE ===
 
 def init_cam(width, height, colormode):
