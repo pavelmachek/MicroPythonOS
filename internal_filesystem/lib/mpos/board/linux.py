@@ -151,7 +151,7 @@ from mpos import SensorManager
 
 # Initialize with no I2C bus - will detect MCU temp if available
 # (On Linux desktop, this will fail gracefully but set _initialized flag)
-SensorManager.init(None)
+SensorManager.init_iio()
 
 # === CAMERA HARDWARE ===
 

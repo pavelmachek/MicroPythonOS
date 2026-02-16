@@ -70,86 +70,6 @@ class Sensor:
     def __repr__(self):
         return f"Sensor({self.name}, type={self.type})"
 
-class _IIODriver:
-    """
-    Read sensor data via Linux IIO sysfs.
-
-    Typical base path:
-        /sys/bus/iio/devices/iio:device0
-    """
-    base_path: str
-
-    def __init__(self, path):
-        self.base_path = path
-
-    def _p(self, name: str) -> Path:
-        return Path(self.base_path) / name
-
-    def _read_text(self, name: str) -> str:
-        return self._p(name).read_text(encoding="ascii").strip()
-
-    def _read_float(self, name: str) -> float:
-        return float(self._read_text(name))
-
-    def _read_int(self, name: str) -> int:
-        return int(self._read_text(name), 10)
-
-    def _read_raw_scaled(self, raw_name: str, scale_name: str) -> float:
-        raw = self._read_int(raw_name)
-        scale = self._read_float(scale_name)
-        return raw * scale
-
-    # ----------------------------
-    # Public API (replacing I2C)
-    # ----------------------------
-
-    @property
-    def temperature(self) -> float:
-        """
-        Tries common IIO patterns:
-          - in_temp_input (already scaled, usually millidegree C)
-          - in_temp_raw + in_temp_scale
-        """
-        if self._p("in_temp_input").exists():
-            v = self._read_float("in_temp_input")
-            # Many drivers expose millidegree Celsius here.
-            if abs(v) > 200:  # heuristic: 25000 means 25°C
-                return v / 1000.0
-            return v
-
-        # Fallback: raw + scale
-        return self._read_raw_scaled("in_temp_raw", "in_temp_scale")
-
-    @property
-    def acceleration(self) -> tuple[float, float, float]:
-        """
-        Returns acceleration in m/s^2 if the kernel driver uses standard IIO scale.
-        Common names:
-          in_accel_{x,y,z}_raw + in_accel_scale
-        """
-        scale_name = "in_accel_scale"
-
-        ax = self._read_raw_scaled("in_accel_x_raw", scale_name)
-        ay = self._read_raw_scaled("in_accel_y_raw", scale_name)
-        az = self._read_raw_scaled("in_accel_z_raw", scale_name)
-
-        return (ax, ay, az)
-
-    @property
-    def gyro(self) -> tuple[float, float, float]:
-        """
-        Returns angular velocity in rad/s if the kernel driver uses standard IIO scale.
-        Common names:
-          in_anglvel_{x,y,z}_raw + in_anglvel_scale
-        """
-        scale_name = "in_anglvel_scale"
-
-        gx = self._read_raw_scaled("in_anglvel_x_raw", scale_name)
-        gy = self._read_raw_scaled("in_anglvel_y_raw", scale_name)
-        gz = self._read_raw_scaled("in_anglvel_z_raw", scale_name)
-
-        return (gx, gy, gz)
-
 
 class SensorManager:
     """
@@ -214,8 +134,6 @@ class SensorManager:
         Returns:
             bool: True if initialized successfully
         """
-        if not i2c_bus:
-            return self.init_iio()
         self._i2c_bus = i2c_bus
         self._i2c_address = address
         self._mounted_position = mounted_position
@@ -839,6 +757,86 @@ class _IMUDriver:
         raise NotImplementedError
 
 
+class _IIODriver(_IMUDriver):
+    """
+    Read sensor data via Linux IIO sysfs.
+
+    Typical base path:
+        /sys/bus/iio/devices/iio:device0
+    """
+    base_path: str
+
+    def __init__(self, path):
+        self.base_path = path
+
+    def _p(self, name: str) -> Path:
+        return Path(self.base_path) / name
+
+    def _read_text(self, name: str) -> str:
+        return self._p(name).read_text(encoding="ascii").strip()
+
+    def _read_float(self, name: str) -> float:
+        return float(self._read_text(name))
+
+    def _read_int(self, name: str) -> int:
+        return int(self._read_text(name), 10)
+
+    def _read_raw_scaled(self, raw_name: str, scale_name: str) -> float:
+        raw = self._read_int(raw_name)
+        scale = self._read_float(scale_name)
+        return raw * scale
+
+    # ----------------------------
+    # Public API (replacing I2C)
+    # ----------------------------
+
+    @property
+    def temperature(self) -> float:
+        """
+        Tries common IIO patterns:
+          - in_temp_input (already scaled, usually millidegree C)
+          - in_temp_raw + in_temp_scale
+        """
+        if self._p("in_temp_input").exists():
+            v = self._read_float("in_temp_input")
+            # Many drivers expose millidegree Celsius here.
+            if abs(v) > 200:  # heuristic: 25000 means 25°C
+                return v / 1000.0
+            return v
+
+        # Fallback: raw + scale
+        return self._read_raw_scaled("in_temp_raw", "in_temp_scale")
+
+    @property
+    def acceleration(self) -> tuple[float, float, float]:
+        """
+        Returns acceleration in m/s^2 if the kernel driver uses standard IIO scale.
+        Common names:
+          in_accel_{x,y,z}_raw + in_accel_scale
+        """
+        scale_name = "in_accel_scale"
+
+        ax = self._read_raw_scaled("in_accel_x_raw", scale_name)
+        ay = self._read_raw_scaled("in_accel_y_raw", scale_name)
+        az = self._read_raw_scaled("in_accel_z_raw", scale_name)
+
+        return (ax, ay, az)
+
+    @property
+    def gyro(self) -> tuple[float, float, float]:
+        """
+        Returns angular velocity in rad/s if the kernel driver uses standard IIO scale.
+        Common names:
+          in_anglvel_{x,y,z}_raw + in_anglvel_scale
+        """
+        scale_name = "in_anglvel_scale"
+
+        gx = self._read_raw_scaled("in_anglvel_x_raw", scale_name)
+        gy = self._read_raw_scaled("in_anglvel_y_raw", scale_name)
+        gz = self._read_raw_scaled("in_anglvel_z_raw", scale_name)
+
+        return (gx, gy, gz)
+
 class _QMI8658Driver(_IMUDriver):
     """Wrapper for QMI8658 IMU (Waveshare board)."""
 
@@ -1040,7 +1038,7 @@ class _WsenISDSDriver(_IMUDriver):
 
 _original_methods = {}
 _methods_to_delegate = [
-    'init', 'is_available', 'get_sensor_list', 'get_default_sensor',
+    'init', 'init_iio', 'is_available', 'get_sensor_list', 'get_default_sensor',
     'read_sensor', 'calibrate_sensor', 'check_calibration_quality',
     'check_stationarity'
 ]
