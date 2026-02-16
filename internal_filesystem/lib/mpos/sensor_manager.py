@@ -28,6 +28,7 @@ except ImportError:
 
 # Sensor type constants (matching Android SensorManager)
 TYPE_ACCELEROMETER = 1      # Units: m/s² (meters per second squared)
+TYPE_MAGNETIC_FIELD = 2	    # Units: μT (micro Teslas)
 TYPE_GYROSCOPE = 4          # Units: deg/s (degrees per second)
 TYPE_TEMPERATURE = 13       # Units: °C (generic, returns first available - deprecated)
 TYPE_IMU_TEMPERATURE = 14   # Units: °C (IMU chip temperature)
@@ -69,6 +70,86 @@ class Sensor:
     def __repr__(self):
         return f"Sensor({self.name}, type={self.type})"
 
+class _IIODriver:
+    """
+    Read sensor data via Linux IIO sysfs.
+
+    Typical base path:
+        /sys/bus/iio/devices/iio:device0
+    """
+    base_path: str
+
+    def __init__(self, path):
+        self.base_path = path
+
+    def _p(self, name: str) -> Path:
+        return Path(self.base_path) / name
+
+    def _read_text(self, name: str) -> str:
+        return self._p(name).read_text(encoding="ascii").strip()
+
+    def _read_float(self, name: str) -> float:
+        return float(self._read_text(name))
+
+    def _read_int(self, name: str) -> int:
+        return int(self._read_text(name), 10)
+
+    def _read_raw_scaled(self, raw_name: str, scale_name: str) -> float:
+        raw = self._read_int(raw_name)
+        scale = self._read_float(scale_name)
+        return raw * scale
+
+    # ----------------------------
+    # Public API (replacing I2C)
+    # ----------------------------
+
+    @property
+    def temperature(self) -> float:
+        """
+        Tries common IIO patterns:
+          - in_temp_input (already scaled, usually millidegree C)
+          - in_temp_raw + in_temp_scale
+        """
+        if self._p("in_temp_input").exists():
+            v = self._read_float("in_temp_input")
+            # Many drivers expose millidegree Celsius here.
+            if abs(v) > 200:  # heuristic: 25000 means 25°C
+                return v / 1000.0
+            return v
+
+        # Fallback: raw + scale
+        return self._read_raw_scaled("in_temp_raw", "in_temp_scale")
+
+    @property
+    def acceleration(self) -> tuple[float, float, float]:
+        """
+        Returns acceleration in m/s^2 if the kernel driver uses standard IIO scale.
+        Common names:
+          in_accel_{x,y,z}_raw + in_accel_scale
+        """
+        scale_name = "in_accel_scale"
+
+        ax = self._read_raw_scaled("in_accel_x_raw", scale_name)
+        ay = self._read_raw_scaled("in_accel_y_raw", scale_name)
+        az = self._read_raw_scaled("in_accel_z_raw", scale_name)
+
+        return (ax, ay, az)
+
+    @property
+    def gyro(self) -> tuple[float, float, float]:
+        """
+        Returns angular velocity in rad/s if the kernel driver uses standard IIO scale.
+        Common names:
+          in_anglvel_{x,y,z}_raw + in_anglvel_scale
+        """
+        scale_name = "in_anglvel_scale"
+
+        gx = self._read_raw_scaled("in_anglvel_x_raw", scale_name)
+        gy = self._read_raw_scaled("in_anglvel_y_raw", scale_name)
+        gz = self._read_raw_scaled("in_anglvel_z_raw", scale_name)
+
+        return (gx, gy, gz)
+
 
 class SensorManager:
     """
@@ -101,6 +182,7 @@ class SensorManager:
     
     # Class-level constants
     TYPE_ACCELEROMETER = TYPE_ACCELEROMETER
+    TYPE_MAGNETIC_FIELD = TYPE_MAGNETIC_FIELD
     TYPE_GYROSCOPE = TYPE_GYROSCOPE
     TYPE_TEMPERATURE = TYPE_TEMPERATURE
     TYPE_IMU_TEMPERATURE = TYPE_IMU_TEMPERATURE
@@ -120,6 +202,7 @@ class SensorManager:
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
+
     
     def init(self, i2c_bus, address=0x6B, mounted_position=FACING_SKY):
         """Initialize SensorManager. MCU temperature initializes immediately, IMU initializes on first use.
@@ -131,6 +214,8 @@ class SensorManager:
         Returns:
             bool: True if initialized successfully
         """
+        if not i2c_bus:
+            return self.init_iio()
         self._i2c_bus = i2c_bus
         self._i2c_address = address
         self._mounted_position = mounted_position
@@ -143,6 +228,43 @@ class SensorManager:
             self._register_mcu_temperature_sensor()
         except:
             pass
+
+        self._initialized = True
+        return True
+
+    def init_iio(self):
+        self._imu_driver = _IIODriver("/sys/bus/iio/devices/iio\:device1/")
+        self._sensor_list = [
+            Sensor(
+                name="Accelerometer",
+                sensor_type=TYPE_ACCELEROMETER,
+                vendor="Linux IIO",
+                version=1,
+                max_range="±8G (78.4 m/s²)",
+                resolution="0.0024 m/s²",
+                power_ma=0.2
+            ),
+            Sensor(
+                name="Gyroscope",
+                sensor_type=TYPE_GYROSCOPE,
+                vendor="Linux IIO",
+                version=1,
+                max_range="±256 deg/s",
+                resolution="0.002 deg/s",
+                power_ma=0.7
+            ),
+            Sensor(
+                name="Temperature",
+                sensor_type=TYPE_IMU_TEMPERATURE,
+                vendor="Linux IIO",
+                version=1,
+                max_range="-40°C to +85°C",
+                resolution="0.004°C",
+                power_ma=0
+            )
+        ]
+        
+        self._load_calibration()
 
         self._initialized = True
         return True
