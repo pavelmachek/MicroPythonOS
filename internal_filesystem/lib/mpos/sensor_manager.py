@@ -19,6 +19,7 @@ Copyright (c) 2024 MicroPythonOS contributors
 """
 
 import time
+import os
 try:
     import _thread
     _lock = _thread.allocate_lock()
@@ -151,7 +152,7 @@ class SensorManager:
         return True
 
     def init_iio(self):
-        self._imu_driver = _IIODriver("/sys/bus/iio/devices/iio:device1/")
+        self._imu_driver = _IIODriver()
         self._sensor_list = [
             Sensor(
                 name="Accelerometer",
@@ -770,11 +771,60 @@ class _IIODriver(_IMUDriver):
     """
     base_path: str
 
-    def __init__(self, path):
-        self.base_path = path
+    def __init__(self):
+        self.base_path = self.find_iio_device_with_file("in_accel_x_raw")
+        print("path:", self.base_path)
 
     def _p(self, name: str):
         return self.base_path + "/" + name
+
+    def _exists(self, name):
+        try:
+            os.stat(name)
+            return True
+        except OSError:
+            return False
+
+    def _is_dir(self, path):
+        # MicroPython: stat tuple, mode is [0]
+        try:
+            st = os.stat(path)
+            mode = st[0]
+            # directory bit (POSIX): 0o040000
+            return (mode & 0o170000) == 0o040000
+        except OSError:
+            return False
+
+    def find_iio_device_with_file(self, filename, base_dir="/sys/bus/iio/devices/"):
+        """
+        Returns full path to iio:deviceX that contains given filename,
+        e.g. "/sys/bus/iio/devices/iio:device0"
+
+        Returns None if not found.
+        """
+
+        print("Is dir? ", self._is_dir(base_dir), base_dir)
+        try:
+            entries = os.listdir(base_dir)
+        except OSError:
+            print("Error listing dir")
+            return None
+
+        for e in entries:
+            print("Entry:", e)
+            if not e.startswith("iio:device"):
+                continue
+
+            print("Entry:", e)
+
+            dev_path = base_dir + "/" + e
+            if not self._is_dir(dev_path):
+                continue
+
+            if self._exists(dev_path + "/" + filename):
+                return dev_path
+
+        return None
 
     def _read_text(self, name: str) -> str:
         p = self.base_path + "/" + name
