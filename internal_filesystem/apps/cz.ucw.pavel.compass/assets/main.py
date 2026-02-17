@@ -1,5 +1,3 @@
-from mpos import Activity
-
 """
 Robot translated that from bwatch/magcali.js
 
@@ -7,27 +5,14 @@ Robot translated that from bwatch/magcali.js
 
 import time
 import os
+import math
 
 try:
     import lvgl as lv
 except ImportError:
     pass
 
-from mpos import Activity, MposKeyboard
-
-
-# ------------------------------------------------------------
-#
-# ------------------------------------------------------------
-
-
-#!/usr/bin/env python3
-# MicroPython / upyos (LVGL)
-# Compass + calibration visualization + side compass ribbon
-
-import math
-import lvgl as lv
-
+from mpos import Activity, MposKeyboard, SensorManager
 
 # -----------------------------
 # Utilities
@@ -40,36 +25,11 @@ def clamp(v, lo, hi):
         return hi
     return v
 
-
 def to_rad(deg):
     return deg * math.pi / 180.0
 
-
 def to_deg(rad):
     return rad * 180.0 / math.pi
-
-
-# -----------------------------
-# Sensor abstraction (YOU ADAPT)
-# -----------------------------
-
-class Sensors:
-    """
-    Adapt these two methods to your platform:
-      - read_compass() -> (x,y,z) or None
-      - read_accel()   -> (x,y,z) or None
-    """
-
-    def read_compass(self):
-        # TODO: replace with real magnetometer read
-        # return (mx, my, mz)
-        return None
-
-    def read_accel(self):
-        # TODO: replace with real accelerometer read
-        # return (ax, ay, az)
-        return None
-
 
 # -----------------------------
 # Calibration + heading
@@ -763,7 +723,8 @@ class Main(PagedCanvas):
     def __init__(self):
         super().__init__()
 
-        self.sensors = Sensors()
+        self.accel = SensorManager.get_default_sensor(SensorManager.TYPE_ACCELEROMETER)
+        self.magn = SensorManager.get_default_sensor(SensorManager.TYPE_MAGNETIC_FIELD)
 
         self.cal = CompassCalibrator()
         self.tilt = TiltCompensatedCompass()
@@ -787,7 +748,7 @@ class Main(PagedCanvas):
         st = 14
         y = 2*st
         
-        v = self.sensors.read_compass()
+        v = SensorManager.read_sensor_once(self.magn)
         if v is None:
             ui.text(0, y, f"No compass data")
             y += st
@@ -803,7 +764,7 @@ class Main(PagedCanvas):
         vh, sc = self.cal.compensated(self.v)
         self.heading = self.cal.heading_flat(sc)
 
-        acc = self.sensors.read_accel()
+        acc = SensorManager.read_sensor_once(self.accel)
 
         ui.text(0, y, f"Compass, raw is {self.v}, bad is {self.bad}, acc is {acc}")
         y += st
