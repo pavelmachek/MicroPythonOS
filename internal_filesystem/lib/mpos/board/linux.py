@@ -154,7 +154,7 @@ from mpos import SensorManager
 SensorManager.init_iio()
 
 # In app:
-if True and SensorManager.is_available():
+if False and SensorManager.is_available():
     accel = SensorManager.get_default_sensor(SensorManager.TYPE_ACCELEROMETER)
     print(accel)
     ax, ay, az = SensorManager.read_sensor_once(accel)  # Returns m/s²
