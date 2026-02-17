@@ -236,14 +236,12 @@ class UI:
         self._rect_dsc.border_opa = lv.OPA.COVER
         self._rect_dsc.border_width = 1
         self._rect_dsc.border_color = lv.color_black()
-        #self._rect_dsc.radius = lv.RADIUS.CIRCLE
 
         self._fill_dsc = lv.draw_rect_dsc_t()
         lv.draw_rect_dsc_t.init(self._fill_dsc)
         self._fill_dsc.bg_opa = lv.OPA.COVER
         self._fill_dsc.bg_color = lv.color_black()
-        self._fill_dsc.border_width = 0
-        #self._fill_dsc.radius = lv.RADIUS.CIRCLE
+        self._fill_dsc.border_width = 1
 
         # Clear once
         self.clear()
@@ -268,7 +266,7 @@ class UI:
         # Clear the canvas background
         self.canvas.fill_bg(lv.color_white(), lv.OPA.COVER)
 
-    def text(self, x, y, s, fg = 0):
+    def text(self, x, y, s, fg = lv.color_black()):
         self._begin()
 
         dsc = lv.draw_label_dsc_t()
@@ -287,7 +285,7 @@ class UI:
 
         self._end()
 
-    def line(self, x1, y1, x2, y2, fg = 0):
+    def line(self, x1, y1, x2, y2, fg = lv.color_black()):
         self._begin()
 
         dsc = self._line_dsc
@@ -302,7 +300,7 @@ class UI:
 
         self._end()
 
-    def circle(self, x, y, r, fg = 0, bg = 0):
+    def circle(self, x, y, r, fg = lv.color_black()):
         # Rounded rectangle trick (works everywhere)
         self._begin()
 
@@ -312,11 +310,15 @@ class UI:
         a.x2 = int(x + r)
         a.y2 = int(y + r)
 
-        lv.draw_rect(self.layer, self._rect_dsc, a)
+        dsc = self._rect_dsc
+        dsc.radius = lv.RADIUS_CIRCLE
+        dsc.border_color = fg
+
+        lv.draw_rect(self.layer, dsc, a)
 
         self._end()
 
-    def fill_circle(self, x, y, r, fg = 0, bg = 0):
+    def fill_circle(self, x, y, r, fg = lv.color_black(), bg = lv.color_white()):
         self._begin()
 
         a = lv.area_t()
@@ -325,11 +327,16 @@ class UI:
         a.x2 = int(x + r)
         a.y2 = int(y + r)
 
-        lv.draw_rect(self.layer, self._fill_dsc, a)
+        dsc = self._rect_dsc
+        dsc.radius = lv.RADIUS_CIRCLE
+        dsc.border_color = fg
+        dsc.bg_color = bg
+
+        lv.draw_rect(self.layer, dsc, a)
 
         self._end()
 
-    def fill_rect(self, x, y, sx, sy, fg = lv.color_black(), bg = lv.color_black()):
+    def fill_rect(self, x, y, sx, sy, fg = lv.color_black(), bg = lv.color_white()):
         self._begin()
 
         a = lv.area_t()
@@ -339,6 +346,7 @@ class UI:
         a.y2 = y+sy
 
         dsc = self._fill_dsc
+        dsc.border_color = fg
         dsc.bg_color = bg
 
         lv.draw_rect(self.layer, dsc, a)
@@ -634,7 +642,7 @@ class Main(PagedCanvas):
         self.ui.fill_rect(xa, ya, xb - xa, yb - ya, bg = bg)
 
         # point
-        self.ui.circle(int(x), int(y), 3, bg = lv.color_make(255, 255, 0))
+        self.ui.fill_circle(int(x), int(y), 3, bg = lv.color_make(255, 255, 0))
 
     # ---- SIDE VIEW ----
 
