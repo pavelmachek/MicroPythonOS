@@ -473,12 +473,13 @@ class Main(PagedCanvas):
         y = 2*st
         
         v = SensorManager.read_sensor_once(self.magn)
+        v = [float(v[1]), -float(v[0]), float(v[2])]
         if v is None:
             ui.text(0, y, f"No compass data")
             y += st
             return
 
-        self.v = [float(v[0]), float(v[1]), float(v[2])]
+        self.v = v
 
         if self.vfirst is None:
             self.vfirst = self.v[:]
