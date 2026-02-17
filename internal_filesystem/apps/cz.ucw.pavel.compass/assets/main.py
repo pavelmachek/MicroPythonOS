@@ -538,10 +538,8 @@ class Main(PagedCanvas):
             r = int(self._degrees_to_pixels(rdeg))
             self.ui.circle(cx, cy, r)
 
-        return
-
         # Calibration box + current point
-        self._draw_calib_box(vmin, vmax, vfirst, v, bad)
+        #self._draw_calib_box(vmin, vmax, vfirst, v, bad)
 
         # Accel circle
         if acc is not None:
@@ -551,11 +549,11 @@ class Main(PagedCanvas):
         self._draw_heading_arrow(heading, color=lv.color_make(255, 0, 0))
         if calib_done and heading2 is not None:
             self._draw_heading_arrow(heading2, color=lv.color_make(255, 255, 255))
-            self._draw_text(10, 10, "%d°" % int(heading2))
+            self.ui.text(10, 10, "%d°" % int(heading2))
 
     def _draw_heading_arrow(self, heading, color):
-        cx = self.w / 2.0
-        cy = self.h / 2.0
+        cx = self.ui.W / 2.0
+        cy = self.ui.H / 2.0
 
         rad = -to_rad(heading)
         x2 = cx + math.sin(rad - 0.1) * 80.0
@@ -569,32 +567,19 @@ class Main(PagedCanvas):
             int(x3), int(y3),
         ]
 
-        dsc = lv.draw_rect_dsc_t()
-        dsc.bg_color = color
-        dsc.bg_opa = lv.OPA.COVER
-
-        # LVGL canvas has fill_polygon on newer lvgl builds;
-        # if missing, replace by drawing 3 lines.
-        try:
-            self.canvas.draw_polygon(poly, dsc)
-        except Exception:
-            ld = lv.draw_line_dsc_t()
-            ld.color = color
-            self.canvas.draw_line(poly[0], poly[1], poly[2], poly[3], ld)
-            self.canvas.draw_line(poly[2], poly[3], poly[4], poly[5], ld)
-            self.canvas.draw_line(poly[4], poly[5], poly[0], poly[1], ld)
+        self.ui.line(poly[0], poly[1], poly[2], poly[3])
+        self.ui.line(poly[2], poly[3], poly[4], poly[5])
+        self.ui.line(poly[4], poly[5], poly[0], poly[1])
 
     def _draw_accel(self, acc):
         ax, ay, az = acc
-        cx = self.w / 2.0
-        cy = self.h / 2.0
+        cx = self.ui.W / 2.0
+        cy = self.ui.H / 2.0
 
-        x2 = cx + ax * self.w
-        y2 = cy + ay * self.w
+        x2 = cx + ax * self.ui.W
+        y2 = cy + ay * self.ui.W
 
-        d = lv.draw_arc_dsc_t()
-        d.color = lv.color_make(0, 0, 255)
-        self.canvas.draw_circle(int(x2), int(y2), int(self.w / 8), d)
+        self.ui.circle(int(x2), int(y2), int(self.ui.W / 8))
 
     def _draw_calib_box(self, vmin, vmax, vfirst, v, bad):
         if v is None or vfirst is None:
@@ -604,11 +589,11 @@ class Main(PagedCanvas):
 
         boxW = (vmax[0] - vmin[0]) * scale
         boxH = -(vmax[1] - vmin[1]) * scale
-        boxX = (vmin[0] - vfirst[0]) * scale + self.w / 2.0
-        boxY = -(vmin[1] - vfirst[1]) * scale + self.h / 2.0
+        boxX = (vmin[0] - vfirst[0]) * scale + self.ui.W / 2.0
+        boxY = -(vmin[1] - vfirst[1]) * scale + self.ui.H / 2.0
 
-        x = (v[0] - vfirst[0]) * scale + self.w / 2.0
-        y = -(v[1] - vfirst[1]) * scale + self.h / 2.0
+        x = (v[0] - vfirst[0]) * scale + self.ui.W / 2.0
+        y = -(v[1] - vfirst[1]) * scale + self.ui.H / 2.0
 
         # box rect
         r = lv.draw_rect_dsc_t()
