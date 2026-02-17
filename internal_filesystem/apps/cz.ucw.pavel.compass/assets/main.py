@@ -568,9 +568,6 @@ class UI:
     """
 
     def __init__(self, scr, canvas):
-        self.page = 0
-        self.pages = 3
-
         self.scr = scr
 
         # Screen size
@@ -627,10 +624,8 @@ class UI:
         self._fill_dsc.border_width = 0
         #self._fill_dsc.radius = lv.RADIUS.CIRCLE
 
-
         # Clear once
         self.clear()
-
 
     # ----------------------------
     # Layer lifecycle
@@ -720,7 +715,6 @@ class UI:
         # But then you must ensure the app calls update() once per frame.
         pass
 
-
 # ----------------------------
 # App logic
 # ----------------------------
@@ -728,6 +722,8 @@ class UI:
 class PagedCanvas(Activity):
     def __init__(self):
         super().__init__()
+        self.page = 0
+        self.pages = 3
 
     def onCreate(self):
         self.scr = lv.obj()
@@ -767,32 +763,19 @@ class PagedCanvas(Activity):
     # Button bar
     # ----------------------------
 
-    def _btn_cb(self, evt, tag):
-        if evt.get_code() != lv.EVENT.CLICKED:
-            return
-        obj = evt.get_target()
-
-        self.page = tag - 1
-        if tag == 1:
-            self._ev_next = True
-        elif tag == 2:
-            self._ev_rec = True
-        elif tag == 3:
-            self._ev_nav = True
-        elif tag == 4:
-            self._ev_clear = True
-
-    def _make_btn(self, parent, x, y, w, h, label, tag):
+    def _make_btn(self, parent, x, y, w, h, label):
         b = lv.button(parent)
         b.set_pos(x, y)
         b.set_size(w, h)
-        b.add_event_cb(lambda evt: self._btn_cb(evt, tag), lv.EVENT.ALL, None)
 
         l = lv.label(b)
         l.set_text(label)
         l.center()
 
         return b
+
+    def _btn_cb(self, evt, tag):
+        self.page = tag
 
     def _build_buttons(self):
         margin = self.margin
@@ -802,10 +785,15 @@ class PagedCanvas(Activity):
         h = self.bar_h
         x0 = margin
 
-        self.btn_next = self._make_btn(self.scr, x0 + (w + margin) * 0, y, w, h, "NEXT", 1)
-        self.btn_rec  = self._make_btn(self.scr, x0 + (w + margin) * 1, y, w, h, "REC",  2)
-        self.btn_nav  = self._make_btn(self.scr, x0 + (w + margin) * 2, y, w, h, "NAV",  3)
-        self.btn_clr  = self._make_btn(self.scr, x0 + (w + margin) * 3, y, w, h, "CLR",  4)
+        self.btn_0 = self._make_btn(self.scr, x0 + (w + margin) * 0, y, w, h, "Pg0")
+        self.btn_1 = self._make_btn(self.scr, x0 + (w + margin) * 1, y, w, h, "Pg1")
+        self.btn_2 = self._make_btn(self.scr, x0 + (w + margin) * 2, y, w, h, "Pg2")
+        self.btn_3 = self._make_btn(self.scr, x0 + (w + margin) * 3, y, w, h, "Pg3")
+
+        self.btn_0.add_event_cb(lambda evt: self._btn_cb(evt, 0), lv.EVENT.CLICKED, None)
+        self.btn_1.add_event_cb(lambda evt: self._btn_cb(evt, 1), lv.EVENT.CLICKED, None)
+        self.btn_2.add_event_cb(lambda evt: self._btn_cb(evt, 2), lv.EVENT.CLICKED, None)
+        self.btn_3.add_event_cb(lambda evt: self._btn_cb(evt, 3), lv.EVENT.CLICKED, None)
 
     # ----------------------------
     # Public API: button polling
@@ -852,7 +840,7 @@ class PagedCanvas(Activity):
 
         st = 14
         y = 2*st
-        ui.text(0, y, "Hello world")
+        ui.text(0, y, "Hello world, page is %d" % self.page)
         y += st
 
     def draw(self):
