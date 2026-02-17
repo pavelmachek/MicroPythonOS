@@ -750,12 +750,6 @@ class PagedCanvas(Activity):
         self.ui = UI(self.scr, self.canvas)
         self.setContentView(self.ui.scr)
 
-        # One-shot events
-        self._ev_next = False
-        self._ev_rec = False
-        self._ev_nav = False
-        self._ev_clear = False
-
         # Build buttons
         self._build_buttons()
 
@@ -794,34 +788,6 @@ class PagedCanvas(Activity):
         self.btn_1.add_event_cb(lambda evt: self._btn_cb(evt, 1), lv.EVENT.CLICKED, None)
         self.btn_2.add_event_cb(lambda evt: self._btn_cb(evt, 2), lv.EVENT.CLICKED, None)
         self.btn_3.add_event_cb(lambda evt: self._btn_cb(evt, 3), lv.EVENT.CLICKED, None)
-
-    # ----------------------------
-    # Public API: button polling
-    # ----------------------------
-
-    def button_next_page(self):
-        if self._ev_next:
-            self._ev_next = False
-            return True
-        return False
-
-    def button_toggle_record(self):
-        if self._ev_rec:
-            self._ev_rec = False
-            return True
-        return False
-
-    def button_set_nav_target(self):
-        if self._ev_nav:
-            self._ev_nav = False
-            return True
-        return False
-
-    def button_clear_track(self):
-        if self._ev_clear:
-            self._ev_clear = False
-            return True
-        return False
 
     def onResume(self, screen):
         self.timer = lv.timer_create(self.tick, 3000, None)
