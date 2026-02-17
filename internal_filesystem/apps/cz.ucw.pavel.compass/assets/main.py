@@ -176,12 +176,12 @@ class TiltCompensatedCompass:
         return psi
 
 # -----------------------------
-# UI (LVGL)
+# Canvas (LVGL)
 # -----------------------------
 
-class UI:
+class Canvas:
     """
-    LVGL canvas + layer drawing UI.
+    LVGL canvas + layer drawing Canvas.
 
     This matches ports where:
       - lv.canvas has init_layer() / finish_layer()
@@ -392,8 +392,8 @@ class PagedCanvas(Activity):
         self.canvas.align(lv.ALIGN.TOP_LEFT, 0, 0)
         self.canvas.set_style_border_width(0, 0)
         
-        self.ui = UI(self.scr, self.canvas)
-        self.setContentView(self.ui.scr)
+        self.c = Canvas(self.scr, self.canvas)
+        self.setContentView(self.c.scr)
 
         # Build buttons
         self._build_buttons()
@@ -450,7 +450,7 @@ class PagedCanvas(Activity):
         pass
 
     def draw_page_example(self):
-        ui = self.ui
+        ui = self.c
         ui.clear()
 
         st = 14
@@ -462,7 +462,7 @@ class PagedCanvas(Activity):
         self.draw_page_example()
 
     def handle_buttons(self):
-        ui = self.ui
+        ui = self.c
 
 class Main(PagedCanvas):
     def __init__(self):
@@ -491,7 +491,7 @@ class Main(PagedCanvas):
         pass
 
     def update(self):
-        ui = self.ui
+        ui = self.c
         ui.clear()
         st = 14
         y = 2*st
@@ -543,7 +543,7 @@ class Main(PagedCanvas):
 
     def _px_per_deg(self):
         # JS used deg->px: (deg/90)*(width/2.1)
-        return (self.ui.W / 2.1) / 90.0
+        return (self.c.W / 2.1) / 90.0
 
     def _degrees_to_pixels(self, deg):
         return deg * self._px_per_deg()
@@ -551,19 +551,19 @@ class Main(PagedCanvas):
     # ---- TOP VIEW ----
 
     def draw_top(self, heading, heading2, calib_done, vmin, vmax, vfirst, v, bad, acc):
-        self.ui.clear()
+        self.c.clear()
 
-        cx = self.ui.W // 2
-        cy = self.ui.H // 2
+        cx = self.c.W // 2
+        cy = self.c.H // 2
 
         # Crosshair
-        self.ui.line(0, cy, self.ui.W, cy)
-        self.ui.line(cx, 0, cx, self.ui.H)
+        self.c.line(0, cy, self.c.W, cy)
+        self.c.line(cx, 0, cx, self.c.H)
 
         # Circles (30/60/90 deg)
         for rdeg in (30, 60, 90):
             r = int(self._degrees_to_pixels(rdeg))
-            self.ui.circle(cx, cy, r)
+            self.c.circle(cx, cy, r)
 
         # Calibration box + current point
         self._draw_calib_box(vmin, vmax, vfirst, v, bad)
@@ -576,11 +576,11 @@ class Main(PagedCanvas):
         self._draw_heading_arrow(heading, color=lv.color_make(255, 0, 0))
         if calib_done and heading2 is not None:
             self._draw_heading_arrow(heading2, color=lv.color_make(255, 255, 255))
-            self.ui.text(10, 10, "%d°" % int(heading2))
+            self.c.text(10, 10, "%d°" % int(heading2))
 
     def _draw_heading_arrow(self, heading, color):
-        cx = self.ui.W / 2.0
-        cy = self.ui.H / 2.0
+        cx = self.c.W / 2.0
+        cy = self.c.H / 2.0
 
         rad = -to_rad(heading)
         x2 = cx + math.sin(rad - 0.1) * 80.0
@@ -594,19 +594,19 @@ class Main(PagedCanvas):
             int(x3), int(y3),
         ]
 
-        self.ui.line(poly[0], poly[1], poly[2], poly[3])
-        self.ui.line(poly[2], poly[3], poly[4], poly[5])
-        self.ui.line(poly[4], poly[5], poly[0], poly[1])
+        self.c.line(poly[0], poly[1], poly[2], poly[3])
+        self.c.line(poly[2], poly[3], poly[4], poly[5])
+        self.c.line(poly[4], poly[5], poly[0], poly[1])
 
     def _draw_accel(self, acc):
         ax, ay, az = acc
-        cx = self.ui.W / 2.0
-        cy = self.ui.H / 2.0
+        cx = self.c.W / 2.0
+        cy = self.c.H / 2.0
 
-        x2 = cx + ax * self.ui.W
-        y2 = cy + ay * self.ui.W
+        x2 = cx + ax * self.c.W
+        y2 = cy + ay * self.c.W
 
-        self.ui.circle(int(x2), int(y2), int(self.ui.W / 8))
+        self.c.circle(int(x2), int(y2), int(self.c.W / 8))
 
     def _draw_calib_box(self, vmin, vmax, vfirst, v, bad):
         if v is None or vfirst is None:
@@ -616,11 +616,11 @@ class Main(PagedCanvas):
 
         boxW = (vmax[0] - vmin[0]) * scale
         boxH = -(vmax[1] - vmin[1]) * scale
-        boxX = (vmin[0] - vfirst[0]) * scale + self.ui.W / 2.0
-        boxY = -(vmin[1] - vfirst[1]) * scale + self.ui.H / 2.0
+        boxX = (vmin[0] - vfirst[0]) * scale + self.c.W / 2.0
+        boxY = -(vmin[1] - vfirst[1]) * scale + self.c.H / 2.0
 
-        x = (v[0] - vfirst[0]) * scale + self.ui.W / 2.0
-        y = -(v[1] - vfirst[1]) * scale + self.ui.H / 2.0
+        x = (v[0] - vfirst[0]) * scale + self.c.W / 2.0
+        y = -(v[1] - vfirst[1]) * scale + self.c.H / 2.0
 
         # box rect
         if bad:
@@ -639,15 +639,15 @@ class Main(PagedCanvas):
         ya = min(y1, y2)
         yb = max(y1, y2)
 
-        self.ui.fill_rect(xa, ya, xb - xa, yb - ya, bg = bg)
+        self.c.fill_rect(xa, ya, xb - xa, yb - ya, bg = bg)
 
         # point
-        self.ui.fill_circle(int(x), int(y), 3, bg = lv.color_make(255, 255, 0))
+        self.c.fill_circle(int(x), int(y), 3, bg = lv.color_make(255, 255, 0))
 
     # ---- SIDE VIEW ----
 
     def draw_side(self, course_deg):
-        self.ui.clear()
+        self.c.clear()
         return
 
         course = int(round(course_deg)) % 360
