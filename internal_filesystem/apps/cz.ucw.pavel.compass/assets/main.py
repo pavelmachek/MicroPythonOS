@@ -175,14 +175,9 @@ class TiltCompensatedCompass:
             psi += 360.0
         return psi
 
-
 # -----------------------------
 # UI (LVGL)
 # -----------------------------
-
-class CompassUI:
-    pass
-
 
 class UI:
     """
@@ -501,12 +496,8 @@ class Main(PagedCanvas):
         if self.tilt.calib_done:
             self.heading2 = self.tilt.tilt_fix_read(self.v, acc)
 
-        self.draw_acc(acc)
-
-    def draw_acc(self, acc):
-        return
-        if self.ui.page == 0:
-            self.ui.draw_top(
+        if self.page == 0:
+            self.draw_top(
                 heading=self.heading,
                 heading2=self.heading2,
                 calib_done=self.tilt.calib_done,
@@ -519,13 +510,13 @@ class Main(PagedCanvas):
             )
         else:
             h = self.heading2 if (self.tilt.calib_done and self.heading2 is not None) else self.heading
-            self.ui.draw_side(h)
+            self.draw_side(h)
 
     LABELS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
     def _px_per_deg(self):
         # JS used deg->px: (deg/90)*(width/2.1)
-        return (self.w / 2.1) / 90.0
+        return (self.ui.W / 2.1) / 90.0
 
     def _degrees_to_pixels(self, deg):
         return deg * self._px_per_deg()
@@ -533,19 +524,21 @@ class Main(PagedCanvas):
     # ---- TOP VIEW ----
 
     def draw_top(self, heading, heading2, calib_done, vmin, vmax, vfirst, v, bad, acc):
-        self._clear()
+        self.ui.clear()
 
-        cx = self.w // 2
-        cy = self.h // 2
+        cx = self.ui.W // 2
+        cy = self.ui.H // 2
 
         # Crosshair
-        self.canvas.draw_line(0, cy, self.w, cy, lv.draw_line_dsc_t())
-        self.canvas.draw_line(cx, 0, cx, self.h, lv.draw_line_dsc_t())
+        self.ui.line(0, cy, self.ui.W, cy)
+        self.ui.line(cx, 0, cx, self.ui.H)
 
         # Circles (30/60/90 deg)
         for rdeg in (30, 60, 90):
             r = int(self._degrees_to_pixels(rdeg))
-            self.canvas.draw_circle(cx, cy, r, lv.draw_arc_dsc_t())
+            self.ui.circle(cx, cy, r)
+
+        return
 
         # Calibration box + current point
         self._draw_calib_box(vmin, vmax, vfirst, v, bad)
@@ -654,7 +647,8 @@ class Main(PagedCanvas):
     # ---- SIDE VIEW ----
 
     def draw_side(self, course_deg):
-        self._clear()
+        self.ui.clear()
+        return
 
         course = int(round(course_deg)) % 360
         ypos = self.Ypos
