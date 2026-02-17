@@ -599,12 +599,6 @@ class UI:
         self.layer = lv.layer_t()
         self.canvas.init_layer(self.layer)
 
-        # One-shot events
-        self._ev_next = False
-        self._ev_rec = False
-        self._ev_nav = False
-        self._ev_clear = False
-
         # Persistent draw descriptors (avoid allocations)
         self._line_dsc = lv.draw_line_dsc_t()
         lv.draw_line_dsc_t.init(self._line_dsc)
@@ -633,55 +627,10 @@ class UI:
         self._fill_dsc.border_width = 0
         #self._fill_dsc.radius = lv.RADIUS.CIRCLE
 
-        # Build buttons
-        self._build_buttons()
 
         # Clear once
         self.clear()
 
-    # ----------------------------
-    # Button bar
-    # ----------------------------
-
-    def _btn_cb(self, evt, tag):
-        if evt.get_code() != lv.EVENT.CLICKED:
-            return
-        obj = evt.get_target()
-
-        self.page = tag - 1
-        if tag == 1:
-            self._ev_next = True
-        elif tag == 2:
-            self._ev_rec = True
-        elif tag == 3:
-            self._ev_nav = True
-        elif tag == 4:
-            self._ev_clear = True
-
-    def _make_btn(self, parent, x, y, w, h, label, tag):
-        b = lv.button(parent)
-        b.set_pos(x, y)
-        b.set_size(w, h)
-        b.add_event_cb(lambda evt: self._btn_cb(evt, tag), lv.EVENT.ALL, None)
-
-        l = lv.label(b)
-        l.set_text(label)
-        l.center()
-
-        return b
-
-    def _build_buttons(self):
-        margin = self.margin
-        y = self.H - self.bar_h - margin
-
-        w = (self.W - margin * 5) // 4
-        h = self.bar_h
-        x0 = margin
-
-        self.btn_next = self._make_btn(self.scr, x0 + (w + margin) * 0, y, w, h, "NEXT", 1)
-        self.btn_rec  = self._make_btn(self.scr, x0 + (w + margin) * 1, y, w, h, "REC",  2)
-        self.btn_nav  = self._make_btn(self.scr, x0 + (w + margin) * 2, y, w, h, "NAV",  3)
-        self.btn_clr  = self._make_btn(self.scr, x0 + (w + margin) * 3, y, w, h, "CLR",  4)
 
     # ----------------------------
     # Layer lifecycle
@@ -771,34 +720,6 @@ class UI:
         # But then you must ensure the app calls update() once per frame.
         pass
 
-    # ----------------------------
-    # Public API: button polling
-    # ----------------------------
-
-    def button_next_page(self):
-        if self._ev_next:
-            self._ev_next = False
-            return True
-        return False
-
-    def button_toggle_record(self):
-        if self._ev_rec:
-            self._ev_rec = False
-            return True
-        return False
-
-    def button_set_nav_target(self):
-        if self._ev_nav:
-            self._ev_nav = False
-            return True
-        return False
-
-    def button_clear_track(self):
-        if self._ev_clear:
-            self._ev_clear = False
-            return True
-        return False
-
 
 # ----------------------------
 # App logic
@@ -832,6 +753,87 @@ class PagedCanvas(Activity):
         
         self.ui = UI(self.scr, self.canvas)
         self.setContentView(self.ui.scr)
+
+        # One-shot events
+        self._ev_next = False
+        self._ev_rec = False
+        self._ev_nav = False
+        self._ev_clear = False
+
+        # Build buttons
+        self._build_buttons()
+
+    # ----------------------------
+    # Button bar
+    # ----------------------------
+
+    def _btn_cb(self, evt, tag):
+        if evt.get_code() != lv.EVENT.CLICKED:
+            return
+        obj = evt.get_target()
+
+        self.page = tag - 1
+        if tag == 1:
+            self._ev_next = True
+        elif tag == 2:
+            self._ev_rec = True
+        elif tag == 3:
+            self._ev_nav = True
+        elif tag == 4:
+            self._ev_clear = True
+
+    def _make_btn(self, parent, x, y, w, h, label, tag):
+        b = lv.button(parent)
+        b.set_pos(x, y)
+        b.set_size(w, h)
+        b.add_event_cb(lambda evt: self._btn_cb(evt, tag), lv.EVENT.ALL, None)
+
+        l = lv.label(b)
+        l.set_text(label)
+        l.center()
+
+        return b
+
+    def _build_buttons(self):
+        margin = self.margin
+        y = self.H - self.bar_h - margin
+
+        w = (self.W - margin * 5) // 4
+        h = self.bar_h
+        x0 = margin
+
+        self.btn_next = self._make_btn(self.scr, x0 + (w + margin) * 0, y, w, h, "NEXT", 1)
+        self.btn_rec  = self._make_btn(self.scr, x0 + (w + margin) * 1, y, w, h, "REC",  2)
+        self.btn_nav  = self._make_btn(self.scr, x0 + (w + margin) * 2, y, w, h, "NAV",  3)
+        self.btn_clr  = self._make_btn(self.scr, x0 + (w + margin) * 3, y, w, h, "CLR",  4)
+
+    # ----------------------------
+    # Public API: button polling
+    # ----------------------------
+
+    def button_next_page(self):
+        if self._ev_next:
+            self._ev_next = False
+            return True
+        return False
+
+    def button_toggle_record(self):
+        if self._ev_rec:
+            self._ev_rec = False
+            return True
+        return False
+
+    def button_set_nav_target(self):
+        if self._ev_nav:
+            self._ev_nav = False
+            return True
+        return False
+
+    def button_clear_track(self):
+        if self._ev_clear:
+            self._ev_clear = False
+            return True
+        return False
 
     def onResume(self, screen):
         self.timer = lv.timer_create(self.tick, 3000, None)
