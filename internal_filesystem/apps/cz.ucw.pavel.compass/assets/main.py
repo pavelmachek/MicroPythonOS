@@ -329,7 +329,7 @@ class UI:
 
         self._end()
 
-    def fill_rect(self, x, y, sx, sy, fg = 0, bg = lv.color_make(255, 255, 255)):
+    def fill_rect(self, x, y, sx, sy, fg = lv.color_black(), bg = lv.color_black()):
         self._begin()
 
         a = lv.area_t()
@@ -338,7 +338,10 @@ class UI:
         a.x2 = x+sx
         a.y2 = y+sy
 
-        lv.draw_rect(self.layer, self._fill_dsc, a)
+        dsc = self._fill_dsc
+        dsc.bg_color = bg
+
+        lv.draw_rect(self.layer, dsc, a)
 
         self._end()
 
@@ -490,7 +493,7 @@ class Main(PagedCanvas):
             ui.text(0, y, f"No compass data")
             y += st
             return
-        sc = 3000
+        sc = 1000
         v = [float(v[1]) * sc, -float(v[0]) * sc, float(v[2]) * sc]
 
         self.v = v
