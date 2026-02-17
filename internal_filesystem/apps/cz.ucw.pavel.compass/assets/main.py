@@ -498,66 +498,6 @@ class CompassUI:
         lab.align(lv.ALIGN.TOP_MID, 0, y)
 
 
-# -----------------------------
-# App controller
-# -----------------------------
-
-class noMain(Activity):
-    def tick(self, t):
-        self.update()
-
-    # --------------------
-
-    def reset_calib(self):
-        self.cal.reset()
-
-    def update(self):
-        v = self.sensors.read_compass()
-        if v is None:
-            return
-
-        self.v = [float(v[0]), float(v[1]), float(v[2])]
-
-        if self.vfirst is None:
-            self.vfirst = self.v[:]
-
-        self.bad = self.cal.step(self.v)
-
-        vh, sc = self.cal.compensated(self.v)
-        self.heading = self.cal.heading_flat(sc)
-
-        acc = self.sensors.read_accel()
-
-        if self.tilt.calib_done:
-            self.heading2 = self.tilt.tilt_fix_read(self.v, acc)
-
-        self.draw(acc)
-
-    def draw(self, acc):
-        # Remove old labels created each frame
-        # (simple approach: clean screen and re-add canvas)
-        # For performance, you would keep labels persistent.
-        for child in list(self.scr.get_children()):
-            if isinstance(child, lv.label):
-                child.delete()
-
-        if self.ui.display == 0:
-            self.ui.draw_top(
-                heading=self.heading,
-                heading2=self.heading2,
-                calib_done=self.tilt.calib_done,
-                vmin=self.cal.vmin,
-                vmax=self.cal.vmax,
-                vfirst=self.vfirst,
-                v=self.v,
-                bad=self.bad,
-                acc=acc,
-            )
-        else:
-            h = self.heading2 if (self.tilt.calib_done and self.heading2 is not None) else self.heading
-            self.ui.draw_side(h)
-
-
 class UI:
     """
     LVGL canvas + layer drawing UI.
@@ -798,7 +738,11 @@ class PagedCanvas(Activity):
             self.timer = None
             
     def tick(self, t):
+        self.update()
         self.draw()
+
+    def update(self):
+        pass
 
     def draw_page_example(self):
         ui = self.ui
@@ -830,3 +774,67 @@ class Main(PagedCanvas):
 
         self.heading = 0.0
         self.heading2 = None
+
+    def reset_calib(self):
+        self.cal.reset()
+
+    def draw(self):
+        pass
+
+    def update(self):
+        ui = self.ui
+        ui.clear()
+        st = 14
+        y = 2*st
+        
+        v = self.sensors.read_compass()
+        if v is None:
+            ui.text(0, y, f"No compass data")
+            y += st
+            return
+
+        self.v = [float(v[0]), float(v[1]), float(v[2])]
+
+        if self.vfirst is None:
+            self.vfirst = self.v[:]
+
+        self.bad = self.cal.step(self.v)
+
+        vh, sc = self.cal.compensated(self.v)
+        self.heading = self.cal.heading_flat(sc)
+
+        acc = self.sensors.read_accel()
+
+        ui.text(0, y, f"Compass, raw is {self.v}, bad is {self.bad}, acc is {acc}")
+        y += st
+
+        if self.tilt.calib_done:
+            self.heading2 = self.tilt.tilt_fix_read(self.v, acc)
+
+        self.draw_acc(acc)
+
+    def draw_acc(self, acc):
+        return
+        # Remove old labels created each frame
+        # (simple approach: clean screen and re-add canvas)
+        # For performance, you would keep labels persistent.
+        for child in list(self.scr.get_children()):
+            if isinstance(child, lv.label):
+                child.delete()
+
+        if self.ui.display == 0:
+            self.ui.draw_top(
+                heading=self.heading,
+                heading2=self.heading2,
+                calib_done=self.tilt.calib_done,
+                vmin=self.cal.vmin,
+                vmax=self.cal.vmax,
+                vfirst=self.vfirst,
+                v=self.v,
+                bad=self.bad,
+                acc=acc,
+            )
+        else:
+            h = self.heading2 if (self.tilt.calib_done and self.heading2 is not None) else self.heading
+            self.ui.draw_side(h)
+
