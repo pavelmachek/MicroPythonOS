@@ -503,70 +503,7 @@ class CompassUI:
 # -----------------------------
 
 class noMain(Activity):
-
-    def __init__(self):
-        super().__init__()
-
-     # --------------------
-
-    def onCreate(self):
-        self.sensors = Sensors()
-
-        self.cal = CompassCalibrator()
-        self.tilt = TiltCompensatedCompass()
-
-        self.v = None
-        self.vfirst = None
-        self.bad = False
-
-        self.heading = 0.0
-        self.heading2 = None
-        
-        self.scr = lv.obj()
-        #self.scr.remove_flag(lv.obj.FLAG.SCROLLABLE)
-
-        # Top labels
-        self.lbl_time = lv.label(self.scr)
-        self.lbl_time.set_style_text_font(lv.font_montserrat_20, 0)
-        self.lbl_time.align(lv.ALIGN.TOP_LEFT, 6, 4)
-
-        self.lbl_date = lv.label(self.scr)
-        self.lbl_date.align(lv.ALIGN.TOP_LEFT, 6, 40)
-
-        self.lbl_month = lv.label(self.scr)
-        self.lbl_month.align(lv.ALIGN.TOP_RIGHT, -6, 10)
-
-        # Upcoming events list
-        self.upcoming_list = lv.list(self.scr)
-        self.upcoming_list.set_size(lv.pct(90), 60)
-        self.upcoming_list.align_to(self.lbl_date, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 10)
-
-        self.w = 320
-        self.h = 240
-
-        self.ui = CompassUI(self.scr, self.w, self.h)
-
-        self.setContentView(self.scr)
-
-    def onResume(self, screen):
-        self.timer = lv.timer_create(self.tick, 3000, None)
-        self.tick(0)
-
-    def onPause(self, screen):
-        if self.timer:
-            self.timer.delete()
-            self.timer = None
-
-    # --------------------
-
     def tick(self, t):
-        now = time.localtime()
-        y, m, d = now[0], now[1], now[2]
-        hh, mm, ss = now[3], now[4], now[5]
-
-        self.lbl_time.set_text("%02d:%02d" % (hh, mm))
-        self.lbl_date.set_text("%04d-%02d-%02d %s" % (y, m, d, ""))
-
         self.update()
 
     # --------------------
@@ -621,7 +558,6 @@ class noMain(Activity):
             self.ui.draw_side(h)
 
 
-
 class UI:
     """
     LVGL canvas + layer drawing UI.
@@ -631,11 +567,10 @@ class UI:
       - primitives are drawn via lv.draw_* into lv.layer_t
     """
 
-    def __init__(self):
+    def __init__(self, scr, canvas):
         self.page = 0
         self.pages = 3
 
-        scr = lv.obj()        
         self.scr = scr
 
         # Screen size
@@ -650,11 +585,7 @@ class UI:
         self.draw_w = self.W
         self.draw_h = self.H - (self.bar_h + self.margin * 2)
 
-        # Canvas
-        self.canvas = lv.canvas(scr)
-        self.canvas.set_size(self.draw_w, self.draw_h)
-        self.canvas.align(lv.ALIGN.TOP_LEFT, 0, 0)
-        self.canvas.set_style_border_width(0, 0)
+        self.canvas = canvas
 
         # Background: white (change if you want dark theme)
         self.canvas.set_style_bg_color(lv.color_white(), lv.PART.MAIN)
@@ -878,7 +809,28 @@ class PagedCanvas(Activity):
         super().__init__()
 
     def onCreate(self):
-        self.ui = UI()
+        self.scr = lv.obj()
+        scr = self.scr
+
+        # Screen size
+        self.W = scr.get_width()
+        self.H = scr.get_height()
+
+        # Bottom button bar
+        self.margin = 2
+        self.bar_h = 26
+
+        # Canvas drawing area (everything above button bar)
+        self.draw_w = self.W
+        self.draw_h = self.H - (self.bar_h + self.margin * 2)
+
+        # Canvas
+        self.canvas = lv.canvas(self.scr)
+        self.canvas.set_size(self.draw_w, self.draw_h)
+        self.canvas.align(lv.ALIGN.TOP_LEFT, 0, 0)
+        self.canvas.set_style_border_width(0, 0)
+        
+        self.ui = UI(self.scr, self.canvas)
         self.setContentView(self.ui.scr)
 
     def onResume(self, screen):
@@ -908,4 +860,17 @@ class PagedCanvas(Activity):
         ui = self.ui
 
 class Main(PagedCanvas):
-    pass
+    def __init__(self):
+        super().__init__()
+
+        self.sensors = Sensors()
+
+        self.cal = CompassCalibrator()
+        self.tilt = TiltCompensatedCompass()
+
+        self.v = None
+        self.vfirst = None
+        self.bad = False
+
+        self.heading = 0.0
+        self.heading2 = None
