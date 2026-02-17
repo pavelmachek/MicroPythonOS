@@ -411,7 +411,7 @@ class PagedCanvas(Activity):
         self.btn_3.add_event_cb(lambda evt: self._btn_cb(evt, 3), lv.EVENT.CLICKED, None)
 
     def onResume(self, screen):
-        self.timer = lv.timer_create(self.tick, 3000, None)
+        self.timer = lv.timer_create(self.tick, 50, None)
 
     def onPause(self, screen):
         if self.timer:
@@ -489,6 +489,7 @@ class Main(PagedCanvas):
         self.heading = self.cal.heading_flat(sc)
 
         acc = SensorManager.read_sensor_once(self.accel)
+        acc = ( -acc[1], -acc[0], acc[2] )
 
         ui.text(0, y, f"Compass, raw is {self.v}, bad is {self.bad}, acc is {acc}")
         y += st
@@ -620,14 +621,6 @@ class Main(PagedCanvas):
         c = lv.draw_arc_dsc_t()
         c.color = lv.color_make(255, 255, 0)
         self.canvas.draw_circle(int(x), int(y), 3, c)
-
-    def _draw_text(self, x, y, text):
-        # Simple label overlay via lv.label (fast enough for small text)
-        # Recreate each draw to avoid managing state; acceptable on small UIs.
-        lab = lv.label(self.scr)
-        lab.set_text(text)
-        lab.set_style_text_color(lv.color_white(), 0)
-        lab.set_pos(x, y)
 
     # ---- SIDE VIEW ----
 
