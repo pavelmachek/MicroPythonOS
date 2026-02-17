@@ -268,7 +268,7 @@ class UI:
         # Clear the canvas background
         self.canvas.fill_bg(lv.color_white(), lv.OPA.COVER)
 
-    def text(self, x, y, s):
+    def text(self, x, y, s, fg = 0):
         self._begin()
 
         dsc = lv.draw_label_dsc_t()
@@ -287,7 +287,7 @@ class UI:
 
         self._end()
 
-    def line(self, x1, y1, x2, y2):
+    def line(self, x1, y1, x2, y2, fg = 0):
         self._begin()
 
         dsc = self._line_dsc
@@ -302,7 +302,7 @@ class UI:
 
         self._end()
 
-    def circle(self, x, y, r):
+    def circle(self, x, y, r, fg = 0, bg = 0):
         # Rounded rectangle trick (works everywhere)
         self._begin()
 
@@ -316,7 +316,7 @@ class UI:
 
         self._end()
 
-    def fill_circle(self, x, y, r):
+    def fill_circle(self, x, y, r, fg = 0, bg = 0):
         self._begin()
 
         a = lv.area_t()
@@ -324,6 +324,19 @@ class UI:
         a.y1 = int(y - r)
         a.x2 = int(x + r)
         a.y2 = int(y + r)
+
+        lv.draw_rect(self.layer, self._fill_dsc, a)
+
+        self._end()
+
+    def fill_rect(self, x, y, sx, sy, fg = 0, bg = lv.color_make(255, 255, 255)):
+        self._begin()
+
+        a = lv.area_t()
+        a.x1 = x
+        a.y1 = y
+        a.x2 = x+sx
+        a.y2 = y+sy
 
         lv.draw_rect(self.layer, self._fill_dsc, a)
 
@@ -473,11 +486,12 @@ class Main(PagedCanvas):
         y = 2*st
         
         v = SensorManager.read_sensor_once(self.magn)
-        v = [float(v[1]), -float(v[0]), float(v[2])]
         if v is None:
             ui.text(0, y, f"No compass data")
             y += st
             return
+        sc = 3000
+        v = [float(v[1]) * sc, -float(v[0]) * sc, float(v[2]) * sc]
 
         self.v = v
 
@@ -541,7 +555,7 @@ class Main(PagedCanvas):
             self.ui.circle(cx, cy, r)
 
         # Calibration box + current point
-        #self._draw_calib_box(vmin, vmax, vfirst, v, bad)
+        self._draw_calib_box(vmin, vmax, vfirst, v, bad)
 
         # Accel circle
         if acc is not None:
@@ -598,12 +612,10 @@ class Main(PagedCanvas):
         y = -(v[1] - vfirst[1]) * scale + self.ui.H / 2.0
 
         # box rect
-        r = lv.draw_rect_dsc_t()
-        r.bg_opa = lv.OPA.COVER
         if bad:
-            r.bg_color = lv.color_make(255, 0, 0)
+            bg = lv.color_make(255, 0, 0)
         else:
-            r.bg_color = lv.color_make(0, 150, 0)
+            bg = lv.color_make(0, 150, 0)
 
         x1 = int(boxX)
         y1 = int(boxY)
@@ -616,12 +628,10 @@ class Main(PagedCanvas):
         ya = min(y1, y2)
         yb = max(y1, y2)
 
-        self.canvas.draw_rect(xa, ya, xb - xa, yb - ya, r)
+        self.ui.fill_rect(xa, ya, xb - xa, yb - ya, bg = bg)
 
         # point
-        c = lv.draw_arc_dsc_t()
-        c.color = lv.color_make(255, 255, 0)
-        self.canvas.draw_circle(int(x), int(y), 3, c)
+        self.ui.circle(int(x), int(y), 3, bg = lv.color_make(255, 255, 0))
 
     # ---- SIDE VIEW ----
 
