@@ -185,6 +185,7 @@ def parse_ddmmyy(ddmmyy):
 class GPSState:
     def __init__(self):
         self.start = time.time()
+        self.start_good = self.start
 
         # Position / motion
         self.lat = None
@@ -219,14 +220,32 @@ class GPSState:
             return "FIX OK"
         num = 0
         good = 0
+        best_snr = 0
+        snrlim = 25
         for prn in self.sats_in_view:
             d = self.sats_in_view[prn]
             snr = d.get("snr")
             num += 1
-            if snr and snr > 25:
-                good += 1
+            if snr:
+                if snr > snrlim:
+                    good += 1
+                if best_snr < snr:
+                    best_snr = snr
 
-        delta = time.time() - self.start
+        now = time.time()
+        if good < 4:
+            self.start_good = now
+
+        if best_snr < snrlim:
+            return f"Need some sky {best_snr} dB"
+                    
+        if good < 4:
+            return f"Need clear sky {good}/{num}"
+
+        delta = now - self.start_good
+        return f"Need a minute {delta:.0f}s"
+
+        delta = now - self.start
         return f"No fix for {delta:.0f}"
     
 
