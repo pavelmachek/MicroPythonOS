@@ -519,7 +519,7 @@ class Canvas:
         self._label_dsc = lv.draw_label_dsc_t()
         lv.draw_label_dsc_t.init(self._label_dsc)
         self._label_dsc.color = lv.color_black()
-        self._label_dsc.font = lv.font_montserrat_14
+        self._label_dsc.font = lv.font_montserrat_24
 
         self._rect_dsc = lv.draw_rect_dsc_t()
         lv.draw_rect_dsc_t.init(self._rect_dsc)
@@ -563,7 +563,7 @@ class Canvas:
         dsc = lv.draw_label_dsc_t()
         lv.draw_label_dsc_t.init(dsc)
         dsc.text = str(s)
-        dsc.font = lv.font_montserrat_14
+        dsc.font = lv.font_montserrat_24
         dsc.color = lv.color_black()
 
         area = lv.area_t()
@@ -744,7 +744,7 @@ class PagedCanvas(Activity):
         ui = self.c
         ui.clear()
 
-        st = 14
+        st = 28
         y = 2*st
         ui.text(0, y, "Hello world, page is %d" % self.page)
         y += st
@@ -844,7 +844,7 @@ class Main(PagedCanvas):
 
         fix = "FIX" if gps.has_fix() else "NOFIX"
         rec = "REC" if self.recording else "----"
-        st = 14
+        st = 28
         y = 2*st
         ui.text(0, y, "%s  %s  sats:%d" % (fix, rec, gps.sats_used))
         y += st
@@ -894,12 +894,12 @@ class Main(PagedCanvas):
         ui = self.c
 
         ui.clear()
-        ui.text(0, 0, "Sky view (GSV)")
+        ui.text(0, 22, "Sky view")
 
         # Sky view circle
         cx = 160
         cy = 160
-        R = 80
+        R = 100
 
         ui.circle(cx, cy, R)
         ui.circle(cx, cy, int(R * 0.66))
@@ -937,13 +937,13 @@ class Main(PagedCanvas):
             ui.fill_circle(x, y, rr)
             count += 1
 
-        ui.text(0, cy + R + 40, "SV: %d" % count)
+        ui.text(0, cy + R - 20, "SV: %d" % count)
         ui.update()
 
     def draw_page_nav(self):
         gps = self.gps
         ui = self.c
-        st = 14
+        st = 28
 
         ui.clear()
         y = 2*st
