@@ -790,7 +790,9 @@ class _IIODriver(_IMUDriver):
 
     def __init__(self):
         self.accel_path = self.find_iio_device_with_file("in_accel_x_raw")
+        self.ensure_sampling_frequency_max(self.accel_path)
         self.mag_path = self.find_iio_device_with_file("in_magn_x_raw")
+        self.ensure_sampling_frequency_max(self.mag_path)
         print("path:", self.mag_path)
 
     def _p(self, name: str):
@@ -852,6 +854,93 @@ class _IIODriver(_IMUDriver):
             return f.readline().strip()
         finally:
             f.close()
+
+    def _parse_available_freqs(self, text):
+        """
+        IIO typically uses either:
+          "12.5 25 50 100"
+        or
+          "0.5 1 2 4 8 16"
+
+        Returns list of floats.
+        """
+        out = []
+        for tok in text.replace(",", " ").split():
+            out.append(float(tok))
+        return out
+
+    def _format_freq_for_sysfs(self, f):
+        """
+        Kernel sysfs usually accepts either integer or decimal.
+        We'll keep it minimal:
+          - if f is whole number -> "100"
+          - else -> "12.5"
+        """
+        if int(f) == f:
+            return str(int(f))
+        # avoid scientific notation
+        s = ("%.6f" % f).rstrip("0").rstrip(".")
+        return s
+
+    def _try_set_via_sudo_tee(self, path, value_str):
+        """
+        Executes:
+          sh -c 'echo VALUE | sudo tee PATH'
+        Returns True if command returns 0.
+        """
+        cmd = "sh -c 'echo %s | sudo tee %s >/dev/null'" % (value_str, path)
+        rc = os.system(cmd)
+        return rc == 0
+
+    def ensure_sampling_frequency_max(self, dev_path):
+        """
+        dev_path: "/sys/bus/iio/devices/iio:deviceX"
+
+        Returns:
+          (changed: bool, max_freq: float or None, current: float or None)
+        """
+        sf = dev_path + "/sampling_frequency"
+        sfa = dev_path + "/sampling_frequency_available"
+
+        # read current
+        cur_s = self._read_text(sf)
+        cur = float(cur_s)
+
+        avail_s = self._read_text(sfa)
+        avail = self._parse_available_freqs(avail_s)
+
+        maxf = max(avail)
+
+        # already max (tolerate float fuzz)
+        if abs(cur - maxf) < 1e-6:
+            print("Already at max frequency")
+            return (False, maxf, cur)
+
+        max_str = self._format_freq_for_sysfs(maxf)
+
+        # Fallback: sudo tee
+        ok = self._try_set_via_sudo_tee(sf, max_str)
+        if not ok:
+            print("Can't switch to max frequency")
+            return (False, maxf, cur)
+
+        new_cur = float(self._read_text(sf))
+
+        return (True, maxf, new_cur)
+
+    def ensure_sampling_frequency_max_for_device_with_file(self, filename):
+        """
+        Convenience wrapper:
+          - finds iio device containing filename
+          - sets sampling_frequency to maximum
+        """
+        dev = self.find_iio_device_with_file(filename)
+        if dev is None:
+            return (None, False, None, None)
+
+        changed, maxf, cur = self.ensure_sampling_frequency_max(dev)
+        return (dev, changed, maxf, cur)
+
 
     def _read_float(self, name: str) -> float:
         return float(self._read_text(name))
