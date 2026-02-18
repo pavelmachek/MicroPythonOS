@@ -8,6 +8,8 @@ micropythonos, give me code to parse nmea data from gps, display lat/lon/speed/.
 import time
 import os
 import json
+import time
+import math
 
 try:
     import lvgl as lv
@@ -16,10 +18,6 @@ except ImportError:
 
 from mpos import Activity, MposKeyboard
 
-
-
-#!/usr/bin/env micropython
-# upyos_gps_nav.py
 #
 # Features:
 # - NMEA parsing: RMC, GGA, GSV
@@ -33,15 +31,6 @@ from mpos import Activity, MposKeyboard
 # - Sky view uses only azimuth/elevation from GSV, which many GPS modules output,
 #   but some modules omit/limit GSV. In that case the sky view will be empty.
 # - EGT is a simple plaintext format defined here (not a standard).
-
-import time
-import math
-
-try:
-    from machine import UART, Pin
-except ImportError:
-    UART = None
-    Pin = None
 
 
 # ----------------------------
