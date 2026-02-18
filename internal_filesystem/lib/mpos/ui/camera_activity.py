@@ -124,9 +124,11 @@ class CameraActivity(Activity):
 
         self.status_label_cont.set_pos(center_w,center_h)
         self.status_label_cont.set_size(width,height)
+        print("Camera: onCreate")
         self.setContentView(self.main_screen)
     
     def onResume(self, screen):
+        print("Camera: onResume")
         self.scanqr_intent = self.getIntent().extras.get("scanqr_intent")
         self.status_label_cont.add_flag(lv.obj.FLAG.HIDDEN)
         if self.scanqr_mode or self.scanqr_intent:
@@ -153,8 +155,15 @@ class CameraActivity(Activity):
 
     def start_cam(self):
         # Init camera:
+        print("")
+        print("")
+        print("")
+        print("------------------------------------------------------------------")
+        print("Starting camera /1")
         firstcam = CameraManager.get_cameras()[0]
+        print("Starting camera", firstcam)
         self.cam = firstcam.init(self.width, self.height, self.colormode)
+        print("Inited camera", firstcam)
         if self.cam:
             self.image.set_rotation(-10 * firstcam.get_rotation_degrees()) # counter the rotation so * -1 and convert to tens-of-a-degree for LVGL
             # Apply saved camera settings, only for internal camera for now:
@@ -205,6 +214,7 @@ class CameraActivity(Activity):
             self.colormode = self.prefs.get_bool("colormode")
 
     def update_preview_image(self):
+        print("update_preview")
         self.image_dsc = lv.image_dsc_t({
             "header": {
                 "magic": lv.IMAGE_HEADER_MAGIC,
@@ -231,6 +241,7 @@ class CameraActivity(Activity):
         self.image.set_scale(min(scale_factor_w,scale_factor_h))
 
     def qrdecode_one(self):
+        print("qrdecode")
         try:
             result = None
             before = time.ticks_ms()

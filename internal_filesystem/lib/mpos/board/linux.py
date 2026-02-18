@@ -173,7 +173,7 @@ def init_cam(width, height, colormode):
     try:
         # Try to initialize webcam to verify it's available
         import webcam
-        return webcam.init("/dev/video0", width=width, height=height)
+        return webcam.init("/dev/video2", width=width, height=height)
     except Exception as e:
         print(f"Info: webcam initialization failed, camera will not be available: {e}")
 
