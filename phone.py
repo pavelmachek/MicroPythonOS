@@ -185,6 +185,40 @@ class Phone:
             loc = modem.GetLocation()
         return loc
 
+    # 0x01 = 3GPP LAC/CI
+    # 0x02 = GPS NMEA
+    # 0x04 = GPS RAW
+    # 0x08 = CDMA BS
+    # 0x10 = GPS Unmanaged
+    CELL_ID  = 0x01
+    GPS_NMEA = 0x02
+    GPS_RAW  = 0x04
+
+    def enable_mobile_loc(self, on):
+        """
+        Enable GPS RAW + NMEA.
+        """
+        mm = self.bus.get("org.freedesktop.ModemManager1")
+        for modem_path in mm.GetManagedObjects():
+            modem = self.bus.get(".ModemManager1", modem_path)
+
+            # Setup(uint32 sources, boolean signal_location)
+            # signal_location=True makes ModemManager emit LocationUpdated signals
+            if on:
+                sources = self.GPS_NMEA | self.GPS_RAW
+            else:
+                sources = 0
+            modem.Setup(sources, True)
+
+            continue
+            # Optional: explicitly enable (some modems require it)
+            try:
+                modem.SetEnable(True)
+            except Exception:
+                print("Cant setenable")
+                return { 'result' : 'setenable failed' }
+        return { 'result': 'ok' }
+
     # --- WiFi ---
     def get_wifi_info(self):
         nm = self.bus.get("org.freedesktop.NetworkManager")
@@ -319,6 +353,12 @@ def handle_cmd(v):
         sys.exit(0)
     if v == "loc":
         print(json.dumps(phone.get_mobile_loc()))
+        sys.exit(0)
+    if v == "loc_on":
+        print(json.dumps(phone.enable_mobile_loc(True)))
+        sys.exit(0)
+    if v == "loc_off":
+        print(json.dumps(phone.enable_mobile_loc(False)))
         sys.exit(0)
     print("Unknown command "+v)
     sys.exit(1)
