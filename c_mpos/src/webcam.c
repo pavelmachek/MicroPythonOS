@@ -508,7 +508,7 @@ static mp_obj_t webcam_init(size_t n_args, const mp_obj_t *pos_args, mp_map_t *k
     mp_arg_val_t args[MP_ARRAY_SIZE(allowed_args)];
     mp_arg_parse_all(n_args, pos_args, kw_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
-    const char *device = "/dev/video0";
+    const char *device = "/dev/video2";
     if (args[ARG_device].u_obj != MP_OBJ_NULL) {
         device = mp_obj_str_get_str(args[ARG_device].u_obj);
     }
