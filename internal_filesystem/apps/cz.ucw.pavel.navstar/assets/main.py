@@ -184,6 +184,8 @@ def parse_ddmmyy(ddmmyy):
 
 class GPSState:
     def __init__(self):
+        self.start = time.time()
+
         # Position / motion
         self.lat = None
         self.lon = None
@@ -212,6 +214,21 @@ class GPSState:
         # Require RMC valid + lat/lon present
         return self.fix_valid and (self.lat is not None) and (self.lon is not None)
 
+    def summary(self):
+        if self.has_fix():
+            return "FIX OK"
+        num = 0
+        good = 0
+        for prn in self.sats_in_view:
+            d = self.sats_in_view[prn]
+            snr = d.get("snr")
+            num += 1
+            if snr and snr > 25:
+                good += 1
+
+        delta = time.time() - self.start
+        return f"No fix for {delta:.0f}"
+    
 
 class NMEAParser:
     def __init__(self, gps_state):
@@ -345,7 +362,7 @@ class NMEAParser:
                 d["az"] = az
             if snr is not None:
                 d["snr"] = snr
-
+        
 
 # ----------------------------
 # Track recording (EGT)
@@ -842,12 +859,14 @@ class Main(PagedCanvas):
 
         ui.clear()
 
-        fix = "FIX" if gps.has_fix() else "NOFIX"
-        rec = "REC" if self.recording else "----"
         st = 28
         y = 2*st
+        fix = "FIX" if gps.has_fix() else "NOFIX"
+        rec = "REC" if self.recording else "----"
         ui.text(0, y, "%s  %s  sats:%d" % (fix, rec, gps.sats_used))
         y += st
+        ui.text(0, y, "%s" % gps.summary())
+        y += 2*st
 
         if gps.lat is not None and gps.lon is not None:
             ui.text(0, y, "Lat: %.6f" % gps.lat)
