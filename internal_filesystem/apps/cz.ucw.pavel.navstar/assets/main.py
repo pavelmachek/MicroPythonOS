@@ -609,8 +609,8 @@ class Canvas:
         area = lv.area_t()
         area.x1 = x
         area.y1 = y
-        area.x2 = x + 300
-        area.y2 = y + 30
+        area.x2 = x + self.W
+        area.y2 = y + self.H
 
         lv.draw_label(self.layer, dsc, area)
 
@@ -766,7 +766,7 @@ class PagedCanvas(Activity):
         self.btn_3.add_event_cb(lambda evt: self._btn_cb(evt, 3), lv.EVENT.CLICKED, None)
 
     def onResume(self, screen):
-        self.timer = lv.timer_create(self.tick, 50, None)
+        self.timer = lv.timer_create(self.tick, 1000, None)
 
     def onPause(self, screen):
         if self.timer:
@@ -974,7 +974,7 @@ class Main(PagedCanvas):
             if snr is None:
                 rr = 1
             else:
-                rr = 1 + int(clamp(snr-10, 0, 15))
+                rr = 1 + int(clamp(snr-10, 0, 15)) / 3
 
             ui.fill_circle(x, y, rr)
             count += 1
