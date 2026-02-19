@@ -179,6 +179,13 @@ def parse_ddmmyy(ddmmyy):
     except Exception:
         return None
 
+class Config:
+    pass
+
+config = Config()
+config.lat = None
+config.lon = None
+config.record = False
 
 # ----------------------------
 # NMEA state model
@@ -1669,7 +1676,7 @@ class NavActivity(Activity):
     def onCreate(self):
         self.scr = lv.obj()
 
-        y = 10
+        y = 90
 
         title = lv.label(self.scr)
         title.set_text("Navigation")
@@ -1685,11 +1692,12 @@ class NavActivity(Activity):
 
         y += 60
 
-        # Filename input
-        self.file_ta = lv.textarea(self.scr)
-        self.file_ta.set_size(300, 40)
-        self.file_ta.align(lv.ALIGN.TOP_MID, 0, y)
-        self.file_ta.set_placeholder_text("track.txt")
+        if False:
+            # Filename input
+            self.file_ta = lv.textarea(self.scr)
+            self.file_ta.set_size(300, 40)
+            self.file_ta.align(lv.ALIGN.TOP_MID, 0, y)
+            self.file_ta.set_placeholder_text("track.txt")
 
         y += 60
 
@@ -1710,7 +1718,7 @@ class NavActivity(Activity):
         # Apply button
         apply_btn = lv.button(self.scr)
         apply_btn.set_size(120, 50)
-        apply_btn.align(lv.ALIGN.BOTTOM_LEFT, 20, -20)
+        apply_btn.align(lv.ALIGN.TOP_LEFT, 20, 40)
         apply_btn.add_event_cb(self.on_apply, lv.EVENT.CLICKED, None)
 
         lbl_apply = lv.label(apply_btn)
@@ -1720,12 +1728,15 @@ class NavActivity(Activity):
         # Back button
         back_btn = lv.button(self.scr)
         back_btn.set_size(120, 50)
-        back_btn.align(lv.ALIGN.BOTTOM_RIGHT, -20, -20)
+        back_btn.align(lv.ALIGN.TOP_RIGHT, -20, 40)
         back_btn.add_event_cb(self.on_back, lv.EVENT.CLICKED, None)
 
         lbl_back = lv.label(back_btn)
         lbl_back.set_text("Back")
         lbl_back.center()
+
+        keyboard = MposKeyboard(self.scr)
+        keyboard.set_textarea(self.pos_ta)
 
         self.setContentView(self.scr)
 
@@ -1734,30 +1745,24 @@ class NavActivity(Activity):
 
     def on_apply(self, e):
         pos_text = self.pos_ta.get_text()
-        file_text = self.file_ta.get_text()
-        record = self.record_cb.get_state() & lv.STATE.CHECKED
+        if False:
+            file_text = self.file_ta.get_text()
+        config.record = self.record_cb.get_state() & lv.STATE.CHECKED
 
         try:
-            lat, lon = parse_position(pos_text)
+            config.lat, config.lon = parse_position(pos_text)
         except:
             self.status.set_text("Invalid position")
-            return
+            config.lat, config.lon = None, None
 
-        if record and not file_text:
+        if False and record and not file_text:
             self.status.set_text("Filename required")
             return
 
-        # Here you would:
-        # - set navigation target
-        # - open file if recording enabled
-
-        msg = "Lat: %.6f Lon: %.6f" % (lat, lon)
-        if record:
-            msg += " REC"
-        self.status.set_text(msg)
+        self.finish()
 
     def on_back(self, e):
-        self.app.show_main()
+        self.finish()
 
     def load(self):
         lv.scr_load(self.scr)
