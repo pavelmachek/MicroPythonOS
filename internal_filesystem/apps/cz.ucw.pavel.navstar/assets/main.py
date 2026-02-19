@@ -17,6 +17,7 @@ try:
 except ImportError:
     pass
 
+import mpos
 from mpos import Activity, MposKeyboard
 
 #
@@ -744,7 +745,7 @@ class PagedCanvas(Activity):
         margin = self.margin
         y = self.H - self.bar_h - margin
 
-        num = 4
+        num = 5
 
         w = (self.W - margin * (num+1)) // num
         h = self.bar_h
@@ -754,7 +755,7 @@ class PagedCanvas(Activity):
         self.btn_1 = self._make_btn(self.scr, x0 + (w + margin) * 1, y, w, h, "Pg1")
         self.btn_2 = self._make_btn(self.scr, x0 + (w + margin) * 2, y, w, h, "Pg2")
         self.btn_3 = self._make_btn(self.scr, x0 + (w + margin) * 3, y, w, h, "Pg3")
-        self.btn_4 = self._make_btn(self.scr, x0 + (w + margin) * 3, y, w, h, "...")
+        self.btn_4 = self._make_btn(self.scr, x0 + (w + margin) * 4, y, w, h, "...")
 
         self.btn_0.add_event_cb(lambda evt: self._btn_cb(evt, 0), lv.EVENT.CLICKED, None)
         self.btn_1.add_event_cb(lambda evt: self._btn_cb(evt, 1), lv.EVENT.CLICKED, None)
@@ -796,7 +797,7 @@ class PagedCanvas(Activity):
 # App logic
 # ----------------------------
 
-class noMain(PagedCanvas):
+class Main(PagedCanvas):
     def __init__(self):
         super().__init__()
         track_file=f"track-{time.time()}.egt"
@@ -834,7 +835,7 @@ class noMain(PagedCanvas):
     def _btn_cb(self, evt, tag):
         self.page = tag
         if tag == 4:
-            intent = Intent(activity_class=SettingsActivity)
+            intent = mpos.Intent(activity_class=NavActivity)
             self.startActivity(intent)
 
     def toggle_recording(self):
@@ -1625,12 +1626,6 @@ def draw_nav_screen(ui, gps, trail,
 class Fake():
     pass
 
-
-#!/usr/bin/env micropython
-import lvgl as lv
-import re
-
-
 # -------------------------------------------------
 # Position parsing
 # -------------------------------------------------
@@ -1662,41 +1657,12 @@ def parse_position(text):
     return lat, lon
 
 
-# -------------------------------------------------
-# Main Activity
-# -------------------------------------------------
-
-class Main(Activity):
-
-    def __init__(self):
-        self.scr = lv.obj()
-
-        label = lv.label(self.scr)
-        label.set_text("Main Activity")
-        label.align(lv.ALIGN.TOP_MID, 0, 20)
-
-        btn = lv.button(self.scr)
-        btn.set_size(200, 60)
-        btn.align(lv.ALIGN.CENTER, 0, 0)
-        btn.add_event_cb(self.on_click, lv.EVENT.CLICKED, None)
-
-        lbl = lv.label(btn)
-        lbl.set_text("Open Navigation")
-        lbl.center()
-
-    def on_click(self, e):
-        self.app.show_nav()
-
-    def load(self):
-        lv.scr_load(self.scr)
-
 
 # -------------------------------------------------
 # Navigation Activity
 # -------------------------------------------------
 
-# FIXME -> NavActivity
-class Main(Activity):
+class NavActivity(Activity):
     def __init__(self):
         super().__init__()
 
