@@ -524,7 +524,7 @@ class Canvas:
 
         # Bottom button bar
         self.margin = 2
-        self.bar_h = 26
+        self.bar_h = 39
 
         # Canvas drawing area (everything above button bar)
         self.draw_w = self.W
@@ -707,7 +707,7 @@ class PagedCanvas(Activity):
 
         # Bottom button bar
         self.margin = 2
-        self.bar_h = 26
+        self.bar_h = 39
 
         # Canvas drawing area (everything above button bar)
         self.draw_w = self.W
@@ -968,9 +968,9 @@ class Main(PagedCanvas):
 
             # Dot size from SNR
             if snr is None:
-                rr = 2
+                rr = 1
             else:
-                rr = 1 + int(clamp(snr, 0, 50) / 20)
+                rr = 1 + int(clamp(snr-10, 0, 15))
 
             ui.fill_circle(x, y, rr)
             count += 1
