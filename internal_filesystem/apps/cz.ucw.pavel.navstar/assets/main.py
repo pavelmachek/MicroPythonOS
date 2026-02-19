@@ -10,6 +10,7 @@ import os
 import json
 import time
 import math
+import re
 
 try:
     import lvgl as lv
@@ -743,7 +744,9 @@ class PagedCanvas(Activity):
         margin = self.margin
         y = self.H - self.bar_h - margin
 
-        w = (self.W - margin * 5) // 4
+        num = 4
+
+        w = (self.W - margin * (num+1)) // num
         h = self.bar_h
         x0 = margin
 
@@ -751,11 +754,13 @@ class PagedCanvas(Activity):
         self.btn_1 = self._make_btn(self.scr, x0 + (w + margin) * 1, y, w, h, "Pg1")
         self.btn_2 = self._make_btn(self.scr, x0 + (w + margin) * 2, y, w, h, "Pg2")
         self.btn_3 = self._make_btn(self.scr, x0 + (w + margin) * 3, y, w, h, "Pg3")
+        self.btn_4 = self._make_btn(self.scr, x0 + (w + margin) * 3, y, w, h, "...")
 
         self.btn_0.add_event_cb(lambda evt: self._btn_cb(evt, 0), lv.EVENT.CLICKED, None)
         self.btn_1.add_event_cb(lambda evt: self._btn_cb(evt, 1), lv.EVENT.CLICKED, None)
         self.btn_2.add_event_cb(lambda evt: self._btn_cb(evt, 2), lv.EVENT.CLICKED, None)
         self.btn_3.add_event_cb(lambda evt: self._btn_cb(evt, 3), lv.EVENT.CLICKED, None)
+        self.btn_4.add_event_cb(lambda evt: self._btn_cb(evt, 4), lv.EVENT.CLICKED, None)
 
     def onResume(self, screen):
         self.timer = lv.timer_create(self.tick, 1000, None)
@@ -791,7 +796,7 @@ class PagedCanvas(Activity):
 # App logic
 # ----------------------------
 
-class Main(PagedCanvas):
+class noMain(PagedCanvas):
     def __init__(self):
         super().__init__()
         track_file=f"track-{time.time()}.egt"
@@ -825,6 +830,12 @@ class Main(PagedCanvas):
                 self.parser.feed_line(line)
         self.update()
         self.draw()
+
+    def _btn_cb(self, evt, tag):
+        self.page = tag
+        if tag == 4:
+            intent = Intent(activity_class=SettingsActivity)
+            self.startActivity(intent)
 
     def toggle_recording(self):
         self.recording = not self.recording
@@ -1613,4 +1624,176 @@ def draw_nav_screen(ui, gps, trail,
 
 class Fake():
     pass
+
+
+#!/usr/bin/env micropython
+import lvgl as lv
+import re
+
+
+# -------------------------------------------------
+# Position parsing
+# -------------------------------------------------
+
+def parse_position(text):
+    """
+    Format: N 50 30.123 E 14 13.231
+    Returns (lat, lon) decimal degrees.
+    Raises ValueError if invalid.
+    """
+    pattern = r'([NS])\s+(\d+)\s+([\d\.]+)\s+([EW])\s+(\d+)\s+([\d\.]+)'
+    m = re.match(pattern, text.strip())
+    if not m:
+        raise ValueError("Invalid coordinate format")
+
+    lat_hemi, lat_deg, lat_min, lon_hemi, lon_deg, lon_min = m.groups()
+
+    lat = float(lat_deg) + float(lat_min) / 60.0
+    lon = float(lon_deg) + float(lon_min) / 60.0
+
+    if lat_hemi == "S":
+        lat = -lat
+    if lon_hemi == "W":
+        lon = -lon
+
+    if abs(lat) > 90 or abs(lon) > 180:
+        raise ValueError("Out of range")
+
+    return lat, lon
+
+
+# -------------------------------------------------
+# Main Activity
+# -------------------------------------------------
+
+class Main(Activity):
+
+    def __init__(self):
+        self.scr = lv.obj()
+
+        label = lv.label(self.scr)
+        label.set_text("Main Activity")
+        label.align(lv.ALIGN.TOP_MID, 0, 20)
+
+        btn = lv.button(self.scr)
+        btn.set_size(200, 60)
+        btn.align(lv.ALIGN.CENTER, 0, 0)
+        btn.add_event_cb(self.on_click, lv.EVENT.CLICKED, None)
+
+        lbl = lv.label(btn)
+        lbl.set_text("Open Navigation")
+        lbl.center()
+
+    def on_click(self, e):
+        self.app.show_nav()
+
+    def load(self):
+        lv.scr_load(self.scr)
+
+
+# -------------------------------------------------
+# Navigation Activity
+# -------------------------------------------------
+
+# FIXME -> NavActivity
+class Main(Activity):
+    def __init__(self):
+        super().__init__()
+
+    def onCreate(self):
+        self.scr = lv.obj()
+
+        y = 10
+
+        title = lv.label(self.scr)
+        title.set_text("Navigation")
+        title.align(lv.ALIGN.TOP_MID, 0, y)
+
+        y += 40
+
+        # Position input
+        self.pos_ta = lv.textarea(self.scr)
+        self.pos_ta.set_size(300, 40)
+        self.pos_ta.align(lv.ALIGN.TOP_MID, 0, y)
+        self.pos_ta.set_placeholder_text("N 50 30.123 E 14 13.231")
+
+        y += 60
+
+        # Filename input
+        self.file_ta = lv.textarea(self.scr)
+        self.file_ta.set_size(300, 40)
+        self.file_ta.align(lv.ALIGN.TOP_MID, 0, y)
+        self.file_ta.set_placeholder_text("track.txt")
+
+        y += 60
+
+        # Record checkbox
+        self.record_cb = lv.checkbox(self.scr)
+        self.record_cb.set_text("Record track")
+        self.record_cb.align(lv.ALIGN.TOP_MID, 0, y)
+
+        y += 50
+
+        # Status label
+        self.status = lv.label(self.scr)
+        self.status.set_text("")
+        self.status.align(lv.ALIGN.TOP_MID, 0, y)
+
+        y += 60
+
+        # Apply button
+        apply_btn = lv.button(self.scr)
+        apply_btn.set_size(120, 50)
+        apply_btn.align(lv.ALIGN.BOTTOM_LEFT, 20, -20)
+        apply_btn.add_event_cb(self.on_apply, lv.EVENT.CLICKED, None)
+
+        lbl_apply = lv.label(apply_btn)
+        lbl_apply.set_text("Apply")
+        lbl_apply.center()
+
+        # Back button
+        back_btn = lv.button(self.scr)
+        back_btn.set_size(120, 50)
+        back_btn.align(lv.ALIGN.BOTTOM_RIGHT, -20, -20)
+        back_btn.add_event_cb(self.on_back, lv.EVENT.CLICKED, None)
+
+        lbl_back = lv.label(back_btn)
+        lbl_back.set_text("Back")
+        lbl_back.center()
+
+        self.setContentView(self.scr)
+
+    def onResume(self, screen):
+        pass
+
+    def on_apply(self, e):
+        pos_text = self.pos_ta.get_text()
+        file_text = self.file_ta.get_text()
+        record = self.record_cb.get_state() & lv.STATE.CHECKED
+
+        try:
+            lat, lon = parse_position(pos_text)
+        except:
+            self.status.set_text("Invalid position")
+            return
+
+        if record and not file_text:
+            self.status.set_text("Filename required")
+            return
+
+        # Here you would:
+        # - set navigation target
+        # - open file if recording enabled
+
+        msg = "Lat: %.6f Lon: %.6f" % (lat, lon)
+        if record:
+            msg += " REC"
+        self.status.set_text(msg)
+
+    def on_back(self, e):
+        self.app.show_main()
+
+    def load(self):
+        lv.scr_load(self.scr)
+
 
