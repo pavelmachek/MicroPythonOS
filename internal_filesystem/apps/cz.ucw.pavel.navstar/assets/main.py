@@ -1022,12 +1022,7 @@ class Main(PagedCanvas):
         ui.text(0, y, "Track: %.3f km" % self.track.length_km)
         print("Final nav", y)
 
-        if True:
-            fake = Fake()
-            fake.lat = 50
-            fake.lon = 14.45
-            print("Nav screen", fake, self.nav)
-            draw_nav_screen(ui, fake, [], self.nav.lat, self.nav.lon)
+        draw_nav_screen(ui, self.gps, [], self.nav.lat, self.nav.lon)
         ui.update()
 
     def draw_page_record(self):
@@ -1517,9 +1512,8 @@ def draw_nav_screen(ui, gps, trail,
         return
 
     # --- Course over ground: defines "UP"
-    cog = getattr(gps, "track_deg", None)
-    if cog is None:
-        cog = getattr(gps, "track", None)
+    cog = getattr(gps, "course_deg", None)
+    print("Lat, lon", lat, lon, "Cog", cog)
 
     # If no course, assume north-up
     if cog is None:
