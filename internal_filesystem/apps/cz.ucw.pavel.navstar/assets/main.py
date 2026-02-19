@@ -829,6 +829,7 @@ class Main(PagedCanvas):
             for line in lines:
                 print("line", line)
                 self.parser.feed_line(line)
+        self.update()
         self.draw()
 
     def toggle_recording(self):
@@ -861,6 +862,7 @@ class Main(PagedCanvas):
             self.parser.feed_line(s)
 
     def maybe_update_track(self):
+        print("update track?")
         if not self.gps.has_fix():
             return
 
@@ -868,6 +870,7 @@ class Main(PagedCanvas):
 
         # Add a track point at ~1 Hz
         if time.ticks_diff(now, self.last_track_add_ms) > 1000:
+            print("update track? ... !")
             self.last_track_add_ms = now
             self.track.add_point(self.gps.lat, self.gps.lon)
 
@@ -1022,7 +1025,7 @@ class Main(PagedCanvas):
         ui.text(0, y, "Track: %.3f km" % self.track.length_km)
         print("Final nav", y)
 
-        draw_nav_screen(ui, self.gps, [], self.nav.lat, self.nav.lon)
+        draw_nav_screen(ui, self.gps, self.track.points, self.nav.lat, self.nav.lon)
         ui.update()
 
     def draw_page_record(self):
@@ -1513,7 +1516,7 @@ def draw_nav_screen(ui, gps, trail,
 
     # --- Course over ground: defines "UP"
     cog = getattr(gps, "course_deg", None)
-    print("Lat, lon", lat, lon, "Cog", cog)
+    print("Lat, lon", lat, lon, "Cog", cog, "trail", trail)
 
     # If no course, assume north-up
     if cog is None:
@@ -1573,8 +1576,7 @@ def draw_nav_screen(ui, gps, trail,
 
         prev_xy = None
         for p in trail[-12:]:
-            plat = p.get("lat")
-            plon = p.get("lon")
+            plat, plon = p
             if plat is None or plon is None:
                 continue
 
