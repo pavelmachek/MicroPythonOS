@@ -393,10 +393,11 @@ class NMEAParser:
 
 class EGTWriter:
     """
-    EGT (Easy GPS Track) - a minimal plaintext format.
+    EGT (Editable GPS Track) - a minimal plaintext format.
 
-    FIXME
+    So... recording to gpx is not really suitable, as that format is hard to modify by tools such as head/tail/tac. It also has trailer, so if you reboot while recording, you would end up with invalid file.
 
+    Format description and some tools to work with these are available at tui/gtracks.
     """
 
     def __init__(self, filename):
