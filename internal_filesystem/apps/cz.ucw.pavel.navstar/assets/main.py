@@ -409,12 +409,12 @@ class EGTWriter:
     Format description and some tools to work with these are available at tui/gtracks.
     """
 
-    def __init__(self, filename):
-        self.filename = filename
+    def __init__(self):
         self.fp = None
         self.started = False
 
-    def start(self):
+    def start(self, filename):
+        self.filename = filename
         if self.fp:
             return
         self.fp = open(self.filename, "a")
@@ -771,6 +771,12 @@ class PagedCanvas(Activity):
         self.btn_4.add_event_cb(lambda evt: self._btn_cb(evt, 4), lv.EVENT.CLICKED, None)
 
     def onResume(self, screen):
+        if not config.lon is None:
+            self.nav.name = "User input"
+            self.nav.lon = config.lon
+            self.nav.lat = config.lat
+            self.recording = config.recording
+            self.toggle_recording()
         self.timer = lv.timer_create(self.tick, 1000, None)
 
     def onPause(self, screen):
@@ -807,12 +813,11 @@ class PagedCanvas(Activity):
 class Main(PagedCanvas):
     def __init__(self):
         super().__init__()
-        track_file=f"track-{time.time()}.egt"
         self.gps = GPSState()
         self.parser = NMEAParser(self.gps)
 
         self.track = Track()
-        self.egt = EGTWriter(track_file)
+        self.egt = EGTWriter()
         self.recording = False
 
         self.nav = NavTarget()
@@ -825,8 +830,6 @@ class Main(PagedCanvas):
         # Default nav point (Prague center) - change as desired
         # (Reality filter: this is just a reasonable example coordinate.)
         self.nav.set(50.087465, 14.421254, "Prague")
-
-        self.toggle_recording()
 
     def tick(self, t):
         lm.poll()
@@ -846,9 +849,9 @@ class Main(PagedCanvas):
             self.startActivity(intent)
 
     def toggle_recording(self):
-        self.recording = not self.recording
         if self.recording:
-            self.egt.start()
+            track_file=f"track-{time.time()}.egt"
+            self.egt.start(track_file)
         else:
             self.egt.stop()
 
