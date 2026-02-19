@@ -216,8 +216,6 @@ class GPSState:
         return self.fix_valid and (self.lat is not None) and (self.lon is not None)
 
     def summary(self):
-        if self.has_fix():
-            return "FIX OK"
         num = 0
         good = 0
         best_snr = 0
@@ -235,6 +233,12 @@ class GPSState:
         now = time.time()
         if good < 4:
             self.start_good = now
+
+        if self.has_fix():
+            if good >=4:
+                return f"Have FIX, good sky, hdop {self.hdop}"
+
+            return f"FIX, bad sky {good}/{num}"
 
         if best_snr < snrlim:
             return f"Need some sky {best_snr} dB"
