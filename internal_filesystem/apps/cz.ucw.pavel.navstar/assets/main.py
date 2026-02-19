@@ -397,15 +397,6 @@ class EGTWriter:
 
     FIXME
 
-    Header:
-      # EGT 1
-      # units: lat_deg lon_deg alt_m speed_kmh time_hms date_ymd
-      # fields: lat lon alt_m speed_kmh course_deg sats_used hdop time date
-
-    Points:
-      P <lat> <lon> <alt_m> <speed_kmh> <course_deg> <sats_used> <hdop> <hh:mm:ss> <yyyy-mm-dd>
-
-    This is NOT a standard. It is intended to be easy to parse later.
     """
 
     def __init__(self, filename):
@@ -454,9 +445,9 @@ class EGTWriter:
         else:
             da = "---- -- --"
 
-        self.fp.write("P %.7f %.7f %.1f %.2f %.1f %d %.2f %s %s\n" %
-                      (lat, lon, alt, spd, crs, sats, hdop, t, da))
-        self.fp.flush()
+        #self.fp.write("P %.7f %.7f %.1f %.2f %.1f %d %.2f %s %s\n" % (lat, lon, alt, spd, crs, sats, hdop, t, da))
+        self.fp.write("%.7f %.7f\n" % (lat, lon))
+        #self.fp.flush()
 
 
 class Track:
@@ -802,7 +793,7 @@ class PagedCanvas(Activity):
 class Main(PagedCanvas):
     def __init__(self):
         super().__init__()
-        track_file="track.egt"
+        track_file=f"track-{time.time()}.egt"
         self.gps = GPSState()
         self.parser = NMEAParser(self.gps)
 
@@ -820,6 +811,8 @@ class Main(PagedCanvas):
         # Default nav point (Prague center) - change as desired
         # (Reality filter: this is just a reasonable example coordinate.)
         self.nav.set(50.087465, 14.421254, "Prague")
+
+        self.toggle_recording()
 
     def tick(self, t):
         lm.poll()
@@ -1388,9 +1381,10 @@ class FakeNMEASpiral:
 
         return out
 
-
-#lm = LocationManager()
-lm = FakeNMEASpiral(center_lat=50.0, center_lon=14.0)
+if False:
+    lm = LocationManager()
+else:
+    lm = FakeNMEASpiral(center_lat=50.0, center_lon=14.0)
 
 # -----------------------------
 # Helpers
