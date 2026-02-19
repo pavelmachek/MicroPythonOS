@@ -1098,46 +1098,234 @@ class LocationManager:
 
 lm = LocationManager()
 
-class noMain(Activity):
-    def __init__(self):
-        super().__init__()
+# -----------------------------
+# Helpers
+# -----------------------------
 
-    def onCreate(self):
-	self.screen = lv.obj()
-        self.screen.remove_flag(lv.obj.FLAG.SCROLLABLE)
+def norm_deg(d):
+    # normalize to 0..360
+    d = d % 360.0
+    if d < 0:
+        d += 360.0
+    return d
 
-        score = lv.label(self.screen)
-        score.align(lv.ALIGN.TOP_LEFT, 5, 35)
-        score.set_text("Information here\nphone loc: XXX\nnmea: XXX")
-	self.raw_data = score
 
-        #score.set_text("Score")
-        #self.lb_score = score
+def bearing_deg(lat1, lon1, lat2, lon2):
+    # initial bearing (true) in degrees, 0..360
+    # Inputs in degrees.
+    phi1 = deg_to_rad(lat1)
+    phi2 = deg_to_rad(lat2)
+    dlon = deg_to_rad(lon2 - lon1)
 
-        vert = 30
-	btn_right = lv.button(self.screen)
-	btn_right.set_size(30, vert)
-	btn_right.align(lv.ALIGN.BOTTOM_RIGHT, -5, -5-vert)
-        btn_right.add_event_cb(lambda e: self.move(1), lv.EVENT.CLICKED, None)
-        lc = lv.label(btn_right)
-	lc.set_text(">")
-	lc.center()
+    y = math.sin(dlon) * math.cos(phi2)
+    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(dlon)
+    brng = rad_to_deg(math.atan2(y, x))
+    return norm_deg(brng)
 
-        self.setContentView(self.screen)
 
-    def onResume(self, screen):
-        self.timer = lv.timer_create(self.tick, 3000, None)
+def haversine_m(lat1, lon1, lat2, lon2):
+    return haversine_km(lat1, lon1, lat2, lon2) * 1000
 
-    def onPause(self, screen):
-        if self.timer:
-            self.timer.delete()
-            self.timer = None
-            
-    def tick(self, t):
-	print("Tick!")
-        lm.poll()
-        cellid = lm.get_cellid()
-        nmea = lm.get_nmea()
-        lm.parse()
-        self.raw_data.set_text(f"Cell id: {cellid}\nLat / lon: {lm.gps.lat} / {lm.gps.lon}\nNMEA: {nmea}\n")
+
+def meters_to_human(m):
+    if m is None:
+        return "?"
+    if m < 1000.0:
+        return "%dm" % int(m + 0.5)
+    return "%.2fkm" % (m / 1000.0)
+
+
+def ms_to_kmh(v):
+    if v is None:
+        return None
+    return v * 3.6
+
+
+def kmh_to_human(kmh):
+    if kmh is None:
+        return "?"
+    if kmh < 10:
+        return "%.1f km/h" % kmh
+    return "%.0f km/h" % kmh
+
+
+def draw_arrow(ui, x0, y0, x1, y1, head_len=14, head_ang_deg=28):
+    # main shaft
+    ui.line(x0, y0, x1, y1)
+
+    # arrow head
+    ang = math.atan2(y1 - y0, x1 - x0)
+    ha = deg_to_rad(head_ang_deg)
+
+    xh1 = int(x1 - head_len * math.cos(ang - ha))
+    yh1 = int(y1 - head_len * math.sin(ang - ha))
+
+    xh2 = int(x1 - head_len * math.cos(ang + ha))
+    yh2 = int(y1 - head_len * math.sin(ang + ha))
+
+    ui.line(x1, y1, xh1, yh1)
+    ui.line(x1, y1, xh2, yh2)
+
+
+def polar_to_xy(cx, cy, r, angle_deg):
+    # angle_deg: 0 is up, 90 is right (screen coords)
+    a = deg_to_rad(angle_deg - 90.0)
+    x = int(cx + r * math.cos(a))
+    y = int(cy + r * math.sin(a))
+    return x, y
+
+
+# -----------------------------
+# Main draw routine
+# -----------------------------
+
+def draw_nav_screen(ui, gps, trail,
+                    dest_lat, dest_lon,
+                    mag_declination_deg=None):
+    """
+    Expected gps fields (typical gpsd-ish):
+      gps.lat, gps.lon
+      gps.speed_ms   (or gps.speed)
+      gps.track_deg  (COG, or gps.track)
+      gps.fix_ok     (bool)
+
+    trail: list of dicts: {"lat":..., "lon":...} newest last
+    mag_declination_deg:
+      If known for your region (e.g. Prague ~ 4-5 deg E in 2025-ish),
+      pass it here. If unknown, pass None and M will not be drawn.
+    """
+
+    ui.clear()
+    ui.text(0, 22, "Navigation")
+
+    # --- Geometry
+    cx = 160
+    cy = 165
+    R = 105
+
+    # --- Draw compass rose
+    ui.circle(cx, cy, R)
+    ui.circle(cx, cy, int(R * 0.66))
+    ui.circle(cx, cy, int(R * 0.33))
+    ui.line(cx - R, cy, cx + R, cy)
+    ui.line(cx, cy - R, cx, cy + R)
+
+    # --- Require a fix
+    if not getattr(gps, "fix_ok", True):
+        ui.text(0, 44, "No GPS fix")
+        return
+
+    lat = getattr(gps, "lat", None)
+    lon = getattr(gps, "lon", None)
+
+    if lat is None or lon is None:
+        ui.text(0, 44, "No position")
+        return
+
+    # --- Course over ground: defines "UP"
+    cog = getattr(gps, "track_deg", None)
+    if cog is None:
+        cog = getattr(gps, "track", None)
+
+    # If no course, assume north-up
+    if cog is None:
+        cog = 0.0
+
+    cog = norm_deg(cog)
+
+    # --- Destination bearing and distance
+    brng_true = bearing_deg(lat, lon, dest_lat, dest_lon)
+    dist_m = haversine_m(lat, lon, dest_lat, dest_lon)
+
+    # Arrow angle relative to UP=COG:
+    # If destination is straight ahead, arrow points up.
+    rel = norm_deg(brng_true - cog)
+    # Convert to signed -180..180 for nicer behavior (optional)
+    if rel > 180.0:
+        rel -= 360.0
+
+    # --- Draw destination arrow
+    # Use a fixed length so it is always visible
+    arrow_len = int(R * 0.85)
+    x_tip, y_tip = polar_to_xy(cx, cy, arrow_len, rel)
+    draw_arrow(ui, cx, cy, x_tip, y_tip, head_len=16, head_ang_deg=30)
+
+    # --- Mark TRUE NORTH on the ring
+    # True north is bearing 0°, relative to UP=COG => angle = 0 - COG
+    ang_true_n = norm_deg(0.0 - cog)
+    xn, yn = polar_to_xy(cx, cy, R, ang_true_n)
+    ui.text(xn - 6, yn - 8, "N")
+
+    # --- Mark MAGNETIC NORTH on the ring (if declination known)
+    # Magnetic bearing = true - declination(E positive)
+    # Magnetic north direction in true coords = -declination
+    if mag_declination_deg is not None:
+        ang_mag_n = norm_deg((-mag_declination_deg) - cog)
+        xm, ym = polar_to_xy(cx, cy, R, ang_mag_n)
+        ui.text(xm - 6, ym - 8, "M")
+
+    # --- Draw trail of last fixes
+    # Project lat/lon into local meters (simple equirectangular)
+    # and rotate so UP is COG.
+    if trail and len(trail) >= 2:
+        lat0 = lat
+        lon0 = lon
+        phi = deg_to_rad(lat0)
+
+        # meters per degree
+        m_per_deg_lat = 111132.0
+        m_per_deg_lon = 111320.0 * math.cos(phi)
+
+        # max range shown in trail radius
+        # (you can tune this)
+        trail_range_m = 80.0
+
+        # rotate by -COG so direction of travel is up
+        rot = deg_to_rad(-cog)
+
+        prev_xy = None
+        for p in trail[-12:]:
+            plat = p.get("lat")
+            plon = p.get("lon")
+            if plat is None or plon is None:
+                continue
+
+            dx = (plon - lon0) * m_per_deg_lon
+            dy = (plat - lat0) * m_per_deg_lat
+
+            # rotate into screen coords
+            rx = dx * math.cos(rot) - dy * math.sin(rot)
+            ry = dx * math.sin(rot) + dy * math.cos(rot)
+
+            # Map meters -> pixels
+            sx = int(cx + (rx / trail_range_m) * (R * 0.95))
+            sy = int(cy - (ry / trail_range_m) * (R * 0.95))
+
+            # clamp to circle-ish bounds
+            sx = clamp(sx, cx - R + 2, cx + R - 2)
+            sy = clamp(sy, cy - R + 2, cy + R - 2)
+
+            # draw point (small cross)
+            ui.line(sx - 1, sy, sx + 1, sy)
+            ui.line(sx, sy - 1, sx, sy + 1)
+
+            if prev_xy is not None:
+                ui.line(prev_xy[0], prev_xy[1], sx, sy)
+
+            prev_xy = (sx, sy)
+
+    # --- Text info
+    speed_ms = getattr(gps, "speed_ms", None)
+    if speed_ms is None:
+        speed_ms = getattr(gps, "speed", None)
+
+    speed_kmh = ms_to_kmh(speed_ms)
+
+    ui.text(0, 290, "Dist: " + meters_to_human(dist_m))
+    ui.text(0, 312, "Speed: " + kmh_to_human(speed_kmh))
+
+    # Optional: show bearing numbers
+    ui.text(0, 334, "COG: %d deg" % int(cog + 0.5))
+    ui.text(0, 356, "BRG: %d deg" % int(brng_true + 0.5))
+
 
