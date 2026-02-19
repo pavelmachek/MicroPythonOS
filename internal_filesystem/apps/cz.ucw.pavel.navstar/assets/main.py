@@ -1030,6 +1030,43 @@ class Main(PagedCanvas):
             draw_nav_screen(ui, fake, [], self.nav.lat, self.nav.lon)
         ui.update()
 
+    def draw_page_record(self):
+        gps = self.gps
+        ui = self.c
+
+        ui.clear()
+
+        st = 28
+        y = 2*st
+        fix = "FIX" if gps.has_fix() else "NOFIX"
+        rec = "REC" if self.recording else "----"
+        ui.text(0, y, "%s  %s  sats:%d" % (fix, rec, gps.sats_used))
+        y += st
+        ui.text(0, y, "%s" % gps.summary())
+        y += 2*st
+
+        if gps.speed_kmh is not None:
+            ui.text(0, y, "Speed: %.1f km/h" % gps.speed_kmh)
+        else:
+            ui.text(0, y, "Speed: ---")
+        y += st
+        
+        if gps.alt_m is not None:
+            ui.text(0, y, "Alt: %.1f m" % gps.alt_m)
+        else:
+            ui.text(0, y, "Alt: ---")
+        y += st
+
+        ui.text(0, y, "Track: %.3f km" % self.track.length_km)
+        y += st
+
+        print("Final size: ", y)
+
+        ui.update()
+
+    def update(self):
+        self.maybe_update_track()
+
     def draw(self):
         if self.page == 0:
             self.draw_page_status()
@@ -1037,6 +1074,10 @@ class Main(PagedCanvas):
             self.draw_page_sky()
         elif self.page == 2:
             self.draw_page_nav()
+        elif self.page == 3:
+            self.draw_page_record()
+        else:
+            self.draw_page_example()
 
     def handle_buttons(self):
         ui = self.c
