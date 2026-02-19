@@ -1021,7 +1021,7 @@ class Main(PagedCanvas):
         y += st*3
 
         ui.text(0, y, "Track: %.3f km" % self.track.length_km)
-        print("Final nav", y)
+        #print("Final nav", y)
 
         draw_nav_screen(ui, self.gps, self.track.points, self.nav.lat, self.nav.lon)
         ui.update()
