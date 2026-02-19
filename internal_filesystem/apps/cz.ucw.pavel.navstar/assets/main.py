@@ -1021,6 +1021,8 @@ class Main(PagedCanvas):
 
         ui.text(0, y, "Track: %.3f km" % self.track.length_km)
         print("Final nav", y)
+
+        draw_nav_screen(ui, self.gps, [], self.nav.lat, self.nav.lon)
         ui.update()
 
     def draw(self):
@@ -1028,7 +1030,7 @@ class Main(PagedCanvas):
             self.draw_page_status()
         elif self.page == 1:
             self.draw_page_sky()
-        else:
+        elif self.page == 2:
             self.draw_page_nav()
 
     def handle_buttons(self):
@@ -1195,24 +1197,19 @@ def draw_nav_screen(ui, gps, trail,
       pass it here. If unknown, pass None and M will not be drawn.
     """
 
-    ui.clear()
-    ui.text(0, 22, "Navigation")
-
     # --- Geometry
-    cx = 160
-    cy = 165
+    cx = 165
+    cy = 420
     R = 105
 
     # --- Draw compass rose
     ui.circle(cx, cy, R)
-    ui.circle(cx, cy, int(R * 0.66))
-    ui.circle(cx, cy, int(R * 0.33))
     ui.line(cx - R, cy, cx + R, cy)
     ui.line(cx, cy - R, cx, cy + R)
 
     # --- Require a fix
     if not getattr(gps, "fix_ok", True):
-        ui.text(0, 44, "No GPS fix")
+        ui.text(0, 440, "No GPS fix")
         return
 
     lat = getattr(gps, "lat", None)
