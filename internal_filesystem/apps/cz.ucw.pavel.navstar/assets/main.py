@@ -1572,7 +1572,7 @@ def draw_nav_screen(ui, gps, trail,
         trail_range_m = 80.0
 
         # rotate by -COG so direction of travel is up
-        rot = deg_to_rad(-cog)
+        rot = deg_to_rad(cog)
 
         prev_xy = None
         for p in trail[-12:]:
