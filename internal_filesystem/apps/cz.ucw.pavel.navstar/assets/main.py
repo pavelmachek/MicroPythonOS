@@ -819,7 +819,7 @@ class Main(PagedCanvas):
 
         # Default nav point (Prague center) - change as desired
         # (Reality filter: this is just a reasonable example coordinate.)
-        self.nav.set(50.087465, 14.421254, "PRAGUE")
+        self.nav.set(50.087465, 14.421254, "Prague")
 
     def tick(self, t):
         lm.poll()
@@ -1022,7 +1022,12 @@ class Main(PagedCanvas):
         ui.text(0, y, "Track: %.3f km" % self.track.length_km)
         print("Final nav", y)
 
-        draw_nav_screen(ui, self.gps, [], self.nav.lat, self.nav.lon)
+        if True:
+            fake = Fake()
+            fake.lat = 50
+            fake.lon = 14.45
+            print("Nav screen", fake, self.nav)
+            draw_nav_screen(ui, fake, [], self.nav.lat, self.nav.lon)
         ui.update()
 
     def draw(self):
@@ -1199,7 +1204,7 @@ def draw_nav_screen(ui, gps, trail,
 
     # --- Geometry
     cx = 165
-    cy = 420
+    cy = 510
     R = 105
 
     # --- Draw compass rose
@@ -1326,3 +1331,5 @@ def draw_nav_screen(ui, gps, trail,
     ui.text(0, 356, "BRG: %d deg" % int(brng_true + 0.5))
 
 
+class Fake():
+    pass
