@@ -827,7 +827,7 @@ class Main(PagedCanvas):
         if nmea:
             lines = nmea.split('\n')
             for line in lines:
-                print("line", line)
+                #print("line", line)
                 self.parser.feed_line(line)
         self.update()
         self.draw()
@@ -862,7 +862,6 @@ class Main(PagedCanvas):
             self.parser.feed_line(s)
 
     def maybe_update_track(self):
-        print("update track?")
         if not self.gps.has_fix():
             return
 
@@ -870,7 +869,6 @@ class Main(PagedCanvas):
 
         # Add a track point at ~1 Hz
         if time.ticks_diff(now, self.last_track_add_ms) > 1000:
-            print("update track? ... !")
             self.last_track_add_ms = now
             self.track.add_point(self.gps.lat, self.gps.lon)
 
@@ -930,7 +928,7 @@ class Main(PagedCanvas):
         if gps.time_hms:
             ui.text(0, y, "Time: %02d:%02d:%02d" % gps.time_hms)
         y += st
-        print("Final size: ", y)
+        #print("Final size: ", y)
 
         ui.update()
 
@@ -1058,7 +1056,7 @@ class Main(PagedCanvas):
         ui.text(0, y, "Track: %.3f km" % self.track.length_km)
         y += st
 
-        print("Final size: ", y)
+        #print("Final size: ", y)
 
         ui.update()
 
@@ -1359,7 +1357,6 @@ class FakeNMEASpiral:
 
     def poll(self):
         self.data = '\n'.join(self.next_sentences())
-        print("Data", self.data)
         
     def get_cellid(self):
         return None
@@ -1516,7 +1513,7 @@ def draw_nav_screen(ui, gps, trail,
 
     # --- Course over ground: defines "UP"
     cog = getattr(gps, "course_deg", None)
-    print("Lat, lon", lat, lon, "Cog", cog, "trail", trail)
+    #print("Lat, lon", lat, lon, "Cog", cog, "trail", trail)
 
     # If no course, assume north-up
     if cog is None:
