@@ -1640,32 +1640,119 @@ class Fake():
 # Position parsing
 # -------------------------------------------------
 
+import re
+
+
 def parse_position(text):
     """
-    Format: N 50 30.123 E 14 13.231
-    Returns (lat, lon) decimal degrees.
-    Raises ValueError if invalid.
+    Flexible coordinate parser.
+
+    Supports:
+      N 50 30.123 E 14 13.231
+      50.1234N 14.2345E
+      -14.2345 50.1234
+      50°30'12"N 14°13'20"E
+      14 13 20 E 50 30 12 N
     """
-    pattern = r'([NS])\s+(\d+)\s+([\d\.]+)\s+([EW])\s+(\d+)\s+([\d\.]+)'
-    m = re.match(pattern, text.strip())
-    if not m:
-        raise ValueError("Invalid coordinate format")
 
-    lat_hemi, lat_deg, lat_min, lon_hemi, lon_deg, lon_min = m.groups()
+    def normalize(s):
+        s = s.strip()
+        s = s.replace("°", " ")
+        s = s.replace("'", " ")
+        s = s.replace('"', " ")
+        s = re.sub(r"\s+", " ", s)
+        return s
 
-    lat = float(lat_deg) + float(lat_min) / 60.0
-    lon = float(lon_deg) + float(lon_min) / 60.0
+    def parse_one(part):
+        # Extract direction if present
+        dir_match = re.search(r"[NSEWnsew]", part)
+        direction = None
+        if dir_match:
+            direction = dir_match.group(0).upper()
+            part = re.sub(r"[NSEWnsew]", "", part)
 
-    if lat_hemi == "S":
-        lat = -lat
-    if lon_hemi == "W":
-        lon = -lon
+        nums = re.findall(r"[-+]?\d+(?:\.\d+)?", part)
+        if not nums:
+            raise ValueError("No numeric data")
+
+        nums = [float(x) for x in nums]
+
+        # dd.dddd
+        if len(nums) == 1:
+            value = nums[0]
+
+        # dd mm.mmm
+        elif len(nums) == 2:
+            deg, minutes = nums
+            value = abs(deg) + minutes / 60.0
+            if deg < 0:
+                value = -value
+
+        # dd mm ss
+        else:
+            deg, minutes, seconds = nums[:3]
+            value = abs(deg) + minutes / 60.0 + seconds / 3600.0
+            if deg < 0:
+                value = -value
+
+        if direction:
+            if direction in ("S", "W"):
+                value = -abs(value)
+            else:
+                value = abs(value)
+
+        return value, direction
+
+    text = normalize(text)
+
+    # Try splitting into two coordinate parts
+    # Strategy: split around direction letters if possible
+    parts = re.split(r"(?=[NSEWnsew])", text)
+
+    coords = []
+
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            value, direction = parse_one(part)
+            coords.append((value, direction))
+        except:
+            pass
+
+    # If we didn’t get two parts, fallback: split in half
+    if len(coords) != 2:
+        tokens = text.split(" ")
+        mid = len(tokens) // 2
+        left = " ".join(tokens[:mid])
+        right = " ".join(tokens[mid:])
+        coords = [
+            parse_one(left),
+            parse_one(right),
+        ]
+
+    if len(coords) != 2:
+        raise ValueError("Could not parse two coordinates")
+
+    lat = None
+    lon = None
+
+    for value, direction in coords:
+        if direction in ("N", "S"):
+            lat = value
+        elif direction in ("E", "W"):
+            lon = value
+
+    # If directions missing, assume first = lat, second = lon
+    if lat is None or lon is None:
+        lat = coords[0][0]
+        lon = coords[1][0]
 
     if abs(lat) > 90 or abs(lon) > 180:
-        raise ValueError("Out of range")
+        raise ValueError("Coordinate out of range")
 
     return lat, lon
-
 
 
 # -------------------------------------------------
