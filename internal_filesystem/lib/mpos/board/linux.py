@@ -10,6 +10,8 @@ import mpos.ui
 import mpos.ui.focus_direction
 from mpos import InputManager
 
+import os
+
 # Same as Waveshare ESP32-S3-Touch-LCD-2 and Fri3d Camp 2026 Badge
 TFT_HOR_RES=320
 TFT_VER_RES=240
@@ -43,7 +45,7 @@ TFT_VER_RES=240
 #TFT_VER_RES=1080
 
 # PinePhone
-if True:
+if os.getenv("RES") != "l":
     TFT_HOR_RES=360
     TFT_VER_RES=665
 
