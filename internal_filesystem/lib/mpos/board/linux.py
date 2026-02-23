@@ -54,6 +54,7 @@ bus = lcd_bus.SDLBus(flags=0)
 buf1 = bus.allocate_framebuffer(TFT_HOR_RES * TFT_VER_RES * 2, 0)
 
 mpos.ui.main_display = sdl_display.SDLDisplay(data_bus=bus,display_width=TFT_HOR_RES,display_height=TFT_VER_RES,frame_buffer1=buf1,color_space=lv.COLOR_FORMAT.RGB565)
+#mpos.ui.main_display.set_rotation(lv.DISPLAY_ROTATION._90)
 # display.set_dpi(65) # doesn't seem to change the default 130...
 mpos.ui.main_display.init()
 # main_display.set_dpi(65) # doesn't seem to change the default 130...
