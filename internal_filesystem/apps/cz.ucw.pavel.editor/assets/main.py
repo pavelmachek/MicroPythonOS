@@ -1,4 +1,4 @@
-from mpos import Activity
+from mpos import Activity, MposKeyboard
 
 """
 Micropythonos, research/write an application to edit text files, using available resources. You may need to do something like vi.
@@ -16,76 +16,25 @@ except ImportError:
 
 from mpos import Activity, MposKeyboard
 
-
-# ------------------------------------------------------------
-#
-# ------------------------------------------------------------
-
 class Main(Activity):
-
-    def __init__(self):
-        super().__init__()
+    def __init__(self, filename = "delme.txt"):
+        self.filename = filename
+        self.lines = []
+        self.modified = False
+        self.cursor = 0
 
      # --------------------
 
     def onCreate(self):
-        self.screen = lv.obj()
-        #self.screen.remove_flag(lv.obj.FLAG.SCROLLABLE)
-
-        # Top labels
-        self.lbl_time = lv.label(self.screen)
-        self.lbl_time.set_style_text_font(lv.font_montserrat_20, 0)
-        self.lbl_time.align(lv.ALIGN.TOP_LEFT, 6, 4)
-
-        self.lbl_date = lv.label(self.screen)
-        self.lbl_date.align(lv.ALIGN.TOP_LEFT, 6, 40)
-
-        self.lbl_month = lv.label(self.screen)
-        self.lbl_month.align(lv.ALIGN.TOP_RIGHT, -6, 10)
-
-        # Upcoming events list
-        self.upcoming_list = lv.list(self.screen)
-        self.upcoming_list.set_size(lv.pct(90), 60)
-        self.upcoming_list.align_to(self.lbl_date, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 10)
-
-        self.setContentView(self.screen)
-
-    def onResume(self, screen):
-        self.timer = lv.timer_create(self.tick, 3000, None)
-        self.tick(0)
-
-    def onPause(self, screen):
-        if self.timer:
-            self.timer.delete()
-            self.timer = None
-
-    # --------------------
-
-    def tick(self, t):
-        now = time.localtime()
-        y, m, d = now[0], now[1], now[2]
-        hh, mm, ss = now[3], now[4], now[5]
-
-        self.lbl_time.set_text("%02d:%02d" % (hh, mm))
-        self.lbl_date.set_text("%04d-%02d-%02d %s" % (y, m, d, ""))
-
-    # --------------------
-
-
-#!/usr/bin/env micropython
-import lvgl as lv
-import os
-
-class TouchTextEditor:
-    def __init__(self, filename):
-        self.filename = filename
-        self.lines = []
-        self.modified = False
-        self.selected_index = 0
-
         self.load_file()
         self.build_ui()
+        self.setContentView(self.scr)
+
+    def onResume(self, screen):
         self.render_lines()
+
+    def onPause(self, screen):
+        pass
 
     # -----------------------
     # File Handling
@@ -112,53 +61,71 @@ class TouchTextEditor:
     # -----------------------
 
     def build_ui(self):
-        self.scr = lv.scr_act()
+        self.scr = lv.obj()
+        self.scr.remove_flag(lv.obj.FLAG.SCROLLABLE)
 
         # Header
-        header = lv.obj(self.scr)
-        header.set_size(lv.pct(100), 30)
-        header.align(lv.ALIGN.TOP_MID, 0, 0)
-        header.set_flex_flow(lv.FLEX_FLOW.ROW)
+        if False:
+            header = lv.obj(self.scr)
+            header.set_size(lv.pct(100), 50)
+            header.align(lv.ALIGN.TOP_MID, 0, 25)
+            header.set_flex_flow(lv.FLEX_FLOW.ROW)
+            header.remove_flag(lv.obj.FLAG.SCROLLABLE)
+            
+            self.header_label = lv.label(header)
+            self.update_header()
 
-        self.header_label = lv.label(header)
-        self.update_header()
+            btn_save = lv.button(header)
+            btn_save.add_event_cb(self.save_file, lv.EVENT.CLICKED, None)
+            lv.label(btn_save).set_text("Save")
 
-        btn_save = lv.btn(header)
-        btn_save.add_event_cb(self.save_file, lv.EVENT.CLICKED, None)
-        lv.label(btn_save).set_text("Save")
-
-        btn_quit = lv.btn(header)
-        btn_quit.add_event_cb(self.quit_app, lv.EVENT.CLICKED, None)
-        lv.label(btn_quit).set_text("Quit")
+            if False:
+                btn_quit = lv.button(header)
+                btn_quit.add_event_cb(self.quit_app, lv.EVENT.CLICKED, None)
+                lv.label(btn_quit).set_text("Quit")
 
         # Line list (scrollable)
-        self.list_container = lv.obj(self.scr)
-        self.list_container.set_size(lv.pct(100), 170)
-        self.list_container.align(lv.ALIGN.TOP_MID, 0, 35)
+        self.list_container = lv.list(self.scr)
+        self.list_container.set_size(lv.pct(100), lv.pct(80))
+        #self.list_container.align_to(header, lv.ALIGN.OUT_BOTTOM_MID, 0, 5)
+        self.list_container.align(lv.ALIGN.TOP_MID, 0, 25)
         self.list_container.set_scroll_dir(lv.DIR.VER)
-        self.list_container.set_flex_flow(lv.FLEX_FLOW.COLUMN)
 
         # Bottom action bar
         footer = lv.obj(self.scr)
-        footer.set_size(lv.pct(100), 40)
+        footer.set_size(lv.pct(100), 50)
         footer.align(lv.ALIGN.BOTTOM_MID, 0, 0)
         footer.set_flex_flow(lv.FLEX_FLOW.ROW)
+        footer.remove_flag(lv.obj.FLAG.SCROLLABLE)
 
-        btn_edit = lv.btn(footer)
+        btn_edit = lv.button(footer)
         btn_edit.add_event_cb(self.edit_selected, lv.EVENT.CLICKED, None)
-        lv.label(btn_edit).set_text("Edit")
+        lv.label(btn_edit).set_text("Ed")
 
-        btn_insert = lv.btn(footer)
+        btn_insert = lv.button(footer)
         btn_insert.add_event_cb(self.insert_line, lv.EVENT.CLICKED, None)
-        lv.label(btn_insert).set_text("Insert")
+        lv.label(btn_insert).set_text("Ins")
 
-        btn_delete = lv.btn(footer)
+        btn_delete = lv.button(footer)
         btn_delete.add_event_cb(self.delete_line, lv.EVENT.CLICKED, None)
-        lv.label(btn_delete).set_text("Delete")
+        lv.label(btn_delete).set_text("Del")
 
+        btn_more = lv.button(footer)
+        btn_more.add_event_cb(self.save_file, lv.EVENT.CLICKED, None)
+        lv.label(btn_more).set_text("Save")
+        
+        btn_up = lv.button(footer)
+        btn_up.add_event_cb(lambda x: self.move(-1), lv.EVENT.CLICKED, None)
+        lv.label(btn_up).set_text("^")
+
+        btn_down = lv.button(footer)
+        btn_down.add_event_cb(lambda x: self.move(1), lv.EVENT.CLICKED, None)
+        lv.label(btn_down).set_text("v")
+        
     def update_header(self):
-        mark = " [+]" if self.modified else ""
-        self.header_label.set_text(self.filename + mark)
+        if False:
+            mark = " [+]" if self.modified else ""
+            self.header_label.set_text(self.filename + mark)
 
     # -----------------------
     # Line Rendering
@@ -168,47 +135,48 @@ class TouchTextEditor:
         self.list_container.clean()
 
         for idx, text in enumerate(self.lines):
-            row = lv.label(self.list_container)
-            row.set_width(lv.pct(100))
-            row.set_long_mode(lv.label.LONG.DOT)
-            row.set_text(text)
-
-            if idx == self.selected_index:
-                row.add_state(lv.STATE.CHECKED)
-
-            row.add_event_cb(
-                lambda e, i=idx: self.select_line(i),
-                lv.EVENT.CLICKED,
-                None
-            )
+            s = text
+            if self.cursor == idx:
+                s = "==>> " + s
+            self.list_container.add_text(s)
 
     def select_line(self, idx):
-        self.selected_index = idx
+        self.cursor = idx
         self.render_lines()
 
     # -----------------------
     # Operations
     # -----------------------
 
+    def move(self, val):
+        print("Move...", val)
+        self.cursor += val
+        self.render_lines()
+
     def edit_selected(self, e=None):
-        idx = self.selected_index
+        print("Edit...")
+        idx = self.cursor
 
         popup = lv.obj(self.scr)
-        popup.set_size(280, 120)
+        popup.set_size(lv.pct(100), lv.pct(100))
         popup.center()
 
         ta = lv.textarea(popup)
         ta.set_width(lv.pct(100))
         ta.set_text(self.lines[idx])
         ta.set_one_line(True)
+        ta.align(lv.ALIGN.TOP_MID, 0, 2)
 
-        btn_ok = lv.btn(popup)
-        btn_ok.align(lv.ALIGN.BOTTOM_LEFT, 0, 0)
+        btn_ok = lv.button(popup)
+        btn_ok.align_to(ta, lv.ALIGN.OUT_BOTTOM_RIGHT, -30, 10)
         lv.label(btn_ok).set_text("OK")
 
-        btn_cancel = lv.btn(popup)
-        btn_cancel.align(lv.ALIGN.BOTTOM_RIGHT, 0, 0)
+        btn_cancel = lv.button(popup)
+        btn_cancel.align_to(ta, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 10)
         lv.label(btn_cancel).set_text("Cancel")
+
+        keyboard = MposKeyboard(popup)
+        keyboard.set_textarea(ta)
 
         def save_edit(e):
             self.lines[idx] = ta.get_text()
@@ -221,16 +189,18 @@ class TouchTextEditor:
         btn_cancel.add_event_cb(lambda e: popup.delete(), lv.EVENT.CLICKED, None)
 
     def insert_line(self, e=None):
-        self.lines.insert(self.selected_index + 1, "")
+        print("Insert...")
+        self.lines.insert(self.cursor + 1, "")
         self.modified = True
         self.render_lines()
         self.update_header()
 
     def delete_line(self, e=None):
+        print("Delete...")
         if len(self.lines) > 1:
-            self.lines.pop(self.selected_index)
-            if self.selected_index >= len(self.lines):
-                self.selected_index = len(self.lines) - 1
+            self.lines.pop(self.cursor)
+            if self.cursor >= len(self.lines):
+                self.cursor = len(self.lines) - 1
             self.modified = True
             self.render_lines()
             self.update_header()
@@ -238,6 +208,4 @@ class TouchTextEditor:
     def quit_app(self, e=None):
         self.scr.clean()
 
-# Launch
-TouchTextEditor("test.txt")
 
