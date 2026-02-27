@@ -1,2 +1,4 @@
 #!/bin/sh
+# usage RUN=cz.ucw.pavel.columns ./run
+# RES=l
 DISPLAY=:1 scripts/run_desktop.sh
