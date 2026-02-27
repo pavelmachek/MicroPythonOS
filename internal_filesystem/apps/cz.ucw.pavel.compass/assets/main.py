@@ -1,6 +1,10 @@
 """
 Robot translated that from bwatch/magcali.js
 
+This is more of a debugging tool for now, but should point north when
+calibrated properly. For best results, place on flat surface and rotate
+device few times.
+
 """
 
 import time
@@ -562,6 +566,9 @@ class Main(PagedCanvas):
             self.c.text(0, y, f"Resetting calibration")
             self.page = 0
             self.cal.reset()
+        elif self.page == 3:
+            h = self.heading2 if (self.heading2 is not None) else self.heading
+            self.draw_side(h)
 
     def build_buttons(self):
         self.template_buttons(["Graph", "Values", "Reset"])
@@ -573,6 +580,8 @@ X {self.cal.acc[0]:.2f} Y {self.cal.acc[1]:.2f} Z {self.cal.acc[2]:.2f}
 Magnetometer      
 X {self.cal.val[0]:.2f} Y {self.cal.val[1]:.2f} Z {self.cal.val[2]:.2f}
 """)
+
+    LABELS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 
     def _px_per_deg(self):
         # JS used deg->px: (deg/90)*(width/2.1)
@@ -685,3 +694,127 @@ X {self.cal.val[0]:.2f} Y {self.cal.val[1]:.2f} Z {self.cal.val[2]:.2f}
         # point
         self.c.fill_circle(int(x), int(y), 3, bg = lv.color_make(255, 255, 0))
 
+    # ---- SIDE VIEW ----
+
+    def draw_side(self, course_deg):
+        """This should be suitable for holding phone vertically
+        (as if taking photos).
+
+        This should create moving ribbon
+
+          -- N ---- E ---- S --
+
+        which should move in such a way that when you are looking
+        "east", you see "E" in the middle
+        """
+        self.c.clear()
+        return
+
+        course = int(round(course_deg)) % 360
+        ypos = self.Ypos
+
+        # Compass ribbon baseline
+        rect = lv.draw_rect_dsc_t()
+        rect.bg_color = lv.color_white()
+        rect.bg_opa = lv.OPA.COVER
+        self.canvas.draw_rect(16, ypos + 45, 144, 4, rect)
+
+        start = course - 90
+        if start < 0:
+            start += 360
+
+        xpos = 16
+        frag = 15 - (start % 15)
+        if frag < 15:
+            xpos += int((frag * 4) / 5)
+        else:
+            frag = 0
+
+        # ticks
+        for i in range(int(frag), int(180 - frag) + 1, 15):
+            res = start + i
+            x = xpos
+
+            if res % 90 == 0:
+                self._tick_label(x, ypos, self.LABELS[(res // 45) % 8], major=True)
+            elif res % 45 == 0:
+                self._tick_label(x, ypos, self.LABELS[(res // 45) % 8], major=False)
+            else:
+                self._tick_minor(x, ypos)
+
+            xpos += 12
+
+        # Bearing dot (optional)
+        if self.brg is not None:
+            bpos = self.brg - course
+            if bpos > 180:
+                bpos -= 360
+            if bpos < -180:
+                bpos += 360
+
+            bpos = int((bpos * 4) / 5) + 88
+            if bpos < 16:
+                bpos = 8
+            if bpos > 160:
+                bpos = 170
+
+            c = lv.draw_arc_dsc_t()
+            c.color = lv.color_make(0, 255, 255)
+            self.canvas.draw_circle(bpos, ypos + 45, 6, c)
+
+        # Course numeric
+        txt = "%03d" % course
+        self._draw_big_centered(txt, ypos + 90)
+
+        # Triangle marker
+        self._draw_triangle_marker(88, ypos + 60)
+
+    def _tick_label(self, x, ypos, label, major):
+        # tick
+        r = lv.draw_rect_dsc_t()
+        r.bg_color = lv.color_white()
+        r.bg_opa = lv.OPA.COVER
+
+        if major:
+            self.canvas.draw_rect(x - 2, ypos + 25, 4, 20, r)
+        else:
+            self.canvas.draw_rect(x - 2, ypos + 30, 4, 15, r)
+
+        # label
+        lab = lv.label(self.scr)
+        lab.set_text(label)
+        lab.set_style_text_color(lv.color_white(), 0)
+        lab.set_pos(x - (9 if not major else 6), ypos + 6)
+
+    def _tick_minor(self, x, ypos):
+        r = lv.draw_rect_dsc_t()
+        r.bg_color = lv.color_white()
+        r.bg_opa = lv.OPA.COVER
+        self.canvas.draw_rect(x, ypos + 35, 2, 10, r)
+
+    def _draw_triangle_marker(self, x, y):
+        dsc = lv.draw_rect_dsc_t()
+        dsc.bg_color = lv.color_white()
+        dsc.bg_opa = lv.OPA.COVER
+
+        poly = [
+            x, y,
+            x - 10, y + 20,
+            x + 10, y + 20,
+        ]
+        try:
+            self.canvas.draw_polygon(poly, dsc)
+        except Exception:
+            ld = lv.draw_line_dsc_t()
+            ld.color = lv.color_white()
+            self.canvas.draw_line(poly[0], poly[1], poly[2], poly[3], ld)
+            self.canvas.draw_line(poly[2], poly[3], poly[4], poly[5], ld)
+            self.canvas.draw_line(poly[4], poly[5], poly[0], poly[1], ld)
+
+    def _draw_big_centered(self, text, y):
+        lab = lv.label(self.scr)
+        lab.set_text(text)
+        lab.set_style_text_color(lv.color_white(), 0)
+        # If you have a font configured, set it here:
+        # lab.set_style_text_font(my_big_font, 0)
+        lab.align(lv.ALIGN.TOP_MID, 0, y)
