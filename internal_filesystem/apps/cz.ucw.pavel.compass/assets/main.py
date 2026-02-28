@@ -578,17 +578,17 @@ class Main(PagedCanvas):
         total = math.sqrt(x*x+y*y+z*z)
         s = ""
         if x > 6:
-            s += ", right"
-        if x < -6:
-            s += ", left"
-        if y > 6:
-            s += ", up"
-        if y < -6:
             s += ", down"
+        if x < -6:
+            s += ", up"
+        if y > 6:
+            s += ", left"
+        if y < -6:
+            s += ", right"
         if z > 6:
-            s += ", above"
-        if z < -6:
             s += ", below"
+        if z < -6:
+            s += ", above"
             
         self.c.text(0, 7, f"""
 ^ Up -> Right
