@@ -574,11 +574,29 @@ class Main(PagedCanvas):
         self.template_buttons(["Graph", "Values", "Reset"])
 
     def draw_values(self):
-        self.c.text(0, 28, f"""
-Acccelerometer
+        x, y, z = self.cal.acc[0], self.cal.acc[1], self.cal.acc[2]
+        total = math.sqrt(x*x+y*y+z*z)
+        s = ""
+        if x > 6:
+            s += ", right"
+        if x < -6:
+            s += ", left"
+        if y > 6:
+            s += ", up"
+        if y < -6:
+            s += ", down"
+        if z > 6:
+            s += ", above"
+        if z < -6:
+            s += ", below"
+            
+        self.c.text(0, 7, f"""
+^ Up -> Right
+|| Acc
 X {self.cal.acc[0]:.2f} Y {self.cal.acc[1]:.2f} Z {self.cal.acc[2]:.2f}
-Magnetometer      
-X {self.cal.val[0]:.2f} Y {self.cal.val[1]:.2f} Z {self.cal.val[2]:.2f}
+9.81 == {total:.2f}{s}
+Magn
+X {self.cal.val[0]:.0f} Y {self.cal.val[1]:.0f} Z {self.cal.val[2]:.0f}
 """)
 
     LABELS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
