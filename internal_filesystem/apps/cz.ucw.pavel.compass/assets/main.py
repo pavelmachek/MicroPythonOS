@@ -507,14 +507,15 @@ class UCompass(TiltCompass):
     def update(self):
         v = SensorManager.read_sensor_once(self.magn)
         sc = 1000
-        v = [float(v[1]) * sc, -float(v[0]) * sc, float(v[2]) * sc]
+        v = [float(v[0]) * sc, -float(v[1]) * sc, float(v[2]) * sc]
         self.val = v
 
         if self.vfirst is None:
             self.vfirst = self.val[:]
 
         acc = SensorManager.read_sensor_once(self.accel)
-        acc = ( -acc[1], -acc[0], acc[2] )
+        sc = 1/9.81
+        acc = ( -acc[0] * sc, acc[1] * sc, acc[2] * sc )
         self.acc = acc
 
 class Main(PagedCanvas):
@@ -577,24 +578,24 @@ class Main(PagedCanvas):
         x, y, z = self.cal.acc[0], self.cal.acc[1], self.cal.acc[2]
         total = math.sqrt(x*x+y*y+z*z)
         s = ""
-        if x > 6:
-            s += ", down"
-        if x < -6:
-            s += ", up"
-        if y > 6:
+        if x > .6:
             s += ", left"
-        if y < -6:
+        if x < -.6:
             s += ", right"
-        if z > 6:
+        if y > .6:
+            s += ", up"
+        if y < -.6:
+            s += ", down"
+        if z > .6:
             s += ", below"
-        if z < -6:
+        if z < -.6:
             s += ", above"
             
         self.c.text(0, 7, f"""
 ^ Up -> Right
 || Acc
 X {self.cal.acc[0]:.2f} Y {self.cal.acc[1]:.2f} Z {self.cal.acc[2]:.2f}
-9.81 == {total:.2f}{s}
+{total*100:.2f}% {s}
 Magn
 X {self.cal.val[0]:.0f} Y {self.cal.val[1]:.0f} Z {self.cal.val[2]:.0f}
 """)
