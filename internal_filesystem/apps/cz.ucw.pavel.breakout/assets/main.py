@@ -1,7 +1,7 @@
 import random
 import math
 
-from mpos import Activity
+from mpos import Activity, InputManager
 from pcanvas import *
 
 try:
@@ -54,7 +54,7 @@ class Main(PagedCanvas):
 
         focusgroup = lv.group_get_default()
         if focusgroup:
-            focusgroup.add_obj(self.screen)
+            focusgroup.add_obj(self.scr)
 
 
     # -----------------------------------------------------------------
@@ -215,10 +215,11 @@ class Main(PagedCanvas):
 
     # -----------------------------------------------------------------
 
-    def on_touch(self, e):
-
-        p = lv.indev_get_act().get_point()
-        self.move_paddle(p.x)
+    def on_touch(self, event):
+        event_code=event.get_code()
+        if event_code == lv.EVENT.PRESSED or event_code == lv.EVENT.PRESSING: # this is probably enough
+            x, y = InputManager.pointer_xy()
+            self.move_paddle(x)
 
     def on_key(self, event):
 
