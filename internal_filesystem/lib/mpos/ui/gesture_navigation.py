@@ -137,6 +137,7 @@ def handle_back_swipe():
 
 def handle_top_swipe():
     global downbutton
+    return
     rect = lv.obj(lv.layer_top())
     rect.set_size(lv.pct(100), AppearanceManager.NOTIFICATION_BAR_HEIGHT)
     rect.set_pos(0, 0)
