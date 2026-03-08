@@ -1,38 +1,10 @@
 import os
 
 from mpos.imu.drivers.base import IMUDriverBase
-
-
-class IIODriver(IMUDriverBase):
-    """
-    Read sensor data via Linux IIO sysfs.
-
-    Typical base path:
-        /sys/bus/iio/devices/iio:device0
-    """
-
-    accel_path: str
-    mag_path: str
-    gyro_path: str
-
-    def __init__(self):
-        super().__init__()
-        self.accel_path = self.find_iio_device_with_file("in_accel_x_raw")
-        self.ensure_sampling_frequency_max(self.accel_path)
-        self.mag_path = self.find_iio_device_with_file("in_magn_x_raw")
-
-        self.ensure_sampling_frequency_max(self.mag_path)
-        self.gyro_path = self.find_iio_device_with_file("in_anglvel_x_raw")
-        self.ensure_sampling_frequency_max(self.gyro_path)
-
-        self.available = any((self.accel_path, self.mag_path, self.gyro_path))
-
-        if not self.available:
-            print("IIO: no IIO sensors detected")
-            return
         
+class SysfsDir:
     def _p(self, name: str):
-        return self.accel_path + "/" + name
+        return self.path + "/" + name
 
     def _exists(self, name):
         try:
@@ -51,7 +23,7 @@ class IIODriver(IMUDriverBase):
         except OSError:
             return False
 
-    def find_iio_device_with_file(self, filename, base_dir="/sys/bus/iio/devices/"):
+    def find_dir_with_file(self, filename, base_dir):
         """
         Returns full path to iio:deviceX that contains given filename,
         e.g. "/sys/bus/iio/devices/iio:device0"
@@ -88,6 +60,23 @@ class IIODriver(IMUDriverBase):
             return f.readline().strip()
         finally:
             f.close()
+
+    def _read_float(self, name: str) -> float:
+        return float(self._read_text(name))
+
+    def _read_int(self, name: str) -> int:
+        return int(self._read_text(name), 10)
+
+    def _read_raw_scaled(self, raw_name: str, scale_name: str) -> float:
+        raw = self._read_int(raw_name)
+        scale = self._read_float(scale_name)
+        return raw * scale
+
+    
+class IIODir(SysfsDir):
+    def init(self, name):
+        self.path = self.find_dir_with_file(name, "/sys/bus/iio/devices/")
+        self.ensure_sampling_frequency_max(self.path)
 
     def _parse_available_freqs(self, text):
         """
@@ -133,12 +122,10 @@ class IIODriver(IMUDriverBase):
         Returns:
           (changed: bool, max_freq: float or None, current: float or None)
         """
-<<<<<<< HEAD
+
         if not dev_path:
             return (False, None, None)
 
-=======
->>>>>>> 0ac9d715 (gyro: add gyroscope test/display application (#76))
         sf = dev_path + "/sampling_frequency"
         sfa = dev_path + "/sampling_frequency_available"
 
@@ -180,34 +167,7 @@ class IIODriver(IMUDriverBase):
 
         changed, maxf, cur = self.ensure_sampling_frequency_max(dev)
         return (dev, changed, maxf, cur)
-
-    def _read_float(self, name: str) -> float:
-        return float(self._read_text(name))
-
-    def _read_int(self, name: str) -> int:
-        return int(self._read_text(name), 10)
-
-    def _read_raw_scaled(self, raw_name: str, scale_name: str) -> float:
-        raw = self._read_int(raw_name)
-        scale = self._read_float(scale_name)
-        return raw * scale
-
-    def read_temperature(self) -> float:
-        """
-        Tries common IIO patterns:
-          - in_temp_input (already scaled, usually millidegree C)
-          - in_temp_raw + in_temp_scale
-        """
-        return 12.34
-        if not self.accel_path:
-            return None
-
-        raw_path = self.accel_path + "/" + "in_temp_raw"
-        scale_path = self.accel_path + "/" + "in_temp_scale"
-        if not self._exists(raw_path) or not self._exists(scale_path):
-            return None
-        return self._read_raw_scaled(raw_path, scale_path)
-
+        
     def _read_mount_matrix(self, p):
         """
         Reads IIO mount matrix from *mount_matrix
@@ -221,7 +181,7 @@ class IIODriver(IMUDriverBase):
         path = p + "/" + "in_accel_mount_matrix"
         if not self._exists(path):
             # Strange, librem 5 has different filename
-            path = self.accel_path + "/" + "mount_matrix"
+            path = self.path + "/" + "mount_matrix"
             if not self._exists(path):
                 return None
 
@@ -252,29 +212,53 @@ class IIODriver(IMUDriverBase):
         z = M[2][0]*ax + M[2][1]*ay + M[2][2]*az
 
         return (x, y, z)
+        
+class IIODriver(IMUDriverBase):
+    """
+    Read sensor data via Linux IIO sysfs.
+
+    Typical base path:
+        /sys/bus/iio/devices/iio:device0
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.accel = IIODir()
+        self.mag = IIODir()
+        self.gyro = IIODir()
+
+        self.accel.init("in_accel_x_raw")
+        self.gyro.init("in_anglvel_x_raw")
+        self.mag.init("in_magn_x_raw")
+
+        self.available = any((self.accel.path, self.mag.path, self.gyro.path))
+
+        if not self.available:
+            print("IIO: no IIO sensors detected")
+            return
 
     def _raw_acceleration_mps2(self):
-        if not self.accel_path:
+        if not self.accel.path:
             return (0.0, 0.0, 0.0)
-        scale_name = self.accel_path + "/" + "in_accel_scale"
+        scale_name = self.accel.path + "/" + "in_accel_scale"
 
-        ax = self._read_raw_scaled(self.accel_path + "/" + "in_accel_x_raw", scale_name)
-        ay = self._read_raw_scaled(self.accel_path + "/" + "in_accel_y_raw", scale_name)
-        az = self._read_raw_scaled(self.accel_path + "/" + "in_accel_z_raw", scale_name)
+        ax = self.accel._read_raw_scaled(self.accel.path + "/" + "in_accel_x_raw", scale_name)
+        ay = self.accel._read_raw_scaled(self.accel.path + "/" + "in_accel_y_raw", scale_name)
+        az = self.accel._read_raw_scaled(self.accel.path + "/" + "in_accel_z_raw", scale_name)
 
-        return self._apply_mount_matrix(ax, ay, az, self.accel_path)
+        return self.accel._apply_mount_matrix(ax, ay, az, self.accel.path)
 
     def _raw_gyroscope_dps(self):
-        if not self.gyro_path:
+        if not self.gyro.path:
             return (0.0, 0.0, 0.0)
-        scale_name = self.gyro_path + "/" + "in_anglvel_scale"
+        scale_name = self.gyro.path + "/" + "in_anglvel_scale"
         mul = 57.2957795
 
-        gx = mul * self._read_raw_scaled(self.gyro_path + "/" + "in_anglvel_x_raw", scale_name)
-        gy = mul * self._read_raw_scaled(self.gyro_path + "/" + "in_anglvel_y_raw", scale_name)
-        gz = mul * self._read_raw_scaled(self.gyro_path + "/" + "in_anglvel_z_raw", scale_name)
+        gx = mul * self.gyro._read_raw_scaled(self.gyro.path + "/" + "in_anglvel_x_raw", scale_name)
+        gy = mul * self.gyro._read_raw_scaled(self.gyro.path + "/" + "in_anglvel_y_raw", scale_name)
+        gz = mul * self.gyro._read_raw_scaled(self.gyro.path + "/" + "in_anglvel_z_raw", scale_name)
 
-        return self._apply_mount_matrix(gx, gy, gz, self.gyro_path)
+        return self.gyro._apply_mount_matrix(gx, gy, gz, self.gyro.path)
 
     def read_acceleration(self):
         ax, ay, az = self._raw_acceleration_mps2()
@@ -293,11 +277,29 @@ class IIODriver(IMUDriverBase):
         )
 
     def read_magnetometer(self) -> tuple[float, float, float]:
-        if not self.mag_path:
+        if not self.mag.path:
             return (0.0, 0.0, 0.0)
 
-        gx = self._read_raw_scaled(self.mag_path + "/" + "in_magn_x_raw", self.mag_path + "/" + "in_magn_x_scale")
-        gy = self._read_raw_scaled(self.mag_path + "/" + "in_magn_y_raw", self.mag_path + "/" + "in_magn_y_scale")
-        gz = self._read_raw_scaled(self.mag_path + "/" + "in_magn_z_raw", self.mag_path + "/" + "in_magn_z_scale")
+        gx = self.mag._read_raw_scaled(self.mag.path + "/" + "in_magn_x_raw", self.mag.path + "/" + "in_magn_x_scale")
+        gy = self.mag._read_raw_scaled(self.mag.path + "/" + "in_magn_y_raw", self.mag.path + "/" + "in_magn_y_scale")
+        gz = self.mag._read_raw_scaled(self.mag.path + "/" + "in_magn_z_raw", self.mag.path + "/" + "in_magn_z_scale")        
 
-        return self._apply_mount_matrix(gx, gy, gz, self.mag_path)
+        return self.mag._apply_mount_matrix(gx, gy, gz, self.mag.path)
+
+    def read_temperature(self) -> float:
+        """
+        Tries common IIO patterns:
+          - in_temp_input (already scaled, usually millidegree C)
+          - in_temp_raw + in_temp_scale
+        """
+        return 12.34
+        if not self.accel.path:
+            return None
+
+        raw_path = self.accel.path + "/" + "in_temp_raw"
+        scale_path = self.accel.path + "/" + "in_temp_scale"
+        if not self._exists(raw_path) or not self._exists(scale_path):
+            return None
+        return self._read_raw_scaled(raw_path, scale_path)
+>>>>>>> fd6a469a (iio: refactor directory handing to allow future changes)
+
