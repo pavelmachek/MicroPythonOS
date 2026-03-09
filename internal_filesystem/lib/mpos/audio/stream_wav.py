@@ -592,3 +592,57 @@ class WAVStream(WAVStreamBase):
                 print("Done playing, doing i2s deinit")
                 self._i2s.deinit() # disabling this does not fix the "play just once" issue
                 self._i2s = None
+
+class WAVStreamPA(WAVStreamBase):
+
+    def __init__(
+        self,
+        file_path,
+        stream_type,
+        volume,
+        on_complete,
+        requested_sample_rate=None,
+    ):
+        """
+        Initialize WAV stream.
+
+        Args:
+            file_path: Path to WAV file
+            stream_type: Stream type (STREAM_MUSIC, STREAM_NOTIFICATION, STREAM_ALARM)
+            volume: Volume level (0-100)
+            i2s_pins: Dict with 'sck', 'ws', 'sd' pin numbers
+            on_complete: Callback function(message) when playback finishes
+            requested_sample_rate: Optional negotiated sample rate for shared clocks
+        """
+        self.file_path = file_path
+        self.stream_type = stream_type
+        self.volume = volume
+        self.on_complete = on_complete
+        self.requested_sample_rate = requested_sample_rate
+        self._keep_running = True
+        self._is_playing = False
+        self._progress_samples = 0
+        self._total_samples = 0
+        self._duration_ms = None
+        self._playback_rate = None
+        self._original_rate = None
+        self._channels = None
+        self._bits_per_sample = None
+        self._data_size = None
+                
+    # ----------------------------------------------------------------------
+    #  Main playback routine
+    # ----------------------------------------------------------------------
+    def play(self):
+        """Main synchronous playback routine (runs in separate thread)."""
+        self._is_playing = True
+
+        try:
+            os.system("paplay " + self.file_path)
+        except Exception as e:
+            print(f"WAVStream: Error: {e}")
+            if self.on_complete:
+                self.on_complete(f"Error: {e}")
+
+        finally:
+            self._is_playing = False

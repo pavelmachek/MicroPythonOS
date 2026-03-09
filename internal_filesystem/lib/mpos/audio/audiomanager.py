@@ -40,7 +40,7 @@ class AudioManager:
             buzzer_pin=None,
             preferred_sample_rate=None,
         ):
-            if kind not in ("i2s", "buzzer"):
+            if kind not in ("i2s", "buzzer", "pa"):
                 raise ValueError("Output.kind must be 'i2s' or 'buzzer'")
             if channels not in (1, 2):
                 raise ValueError("Output.channels must be 1 or 2")
@@ -56,7 +56,7 @@ class AudioManager:
                 self._validate_i2s_pins(i2s_pins)
                 self.i2s_pins = dict(i2s_pins)
                 self.buzzer_pin = None
-            else:
+            elif kind == "buzzer":
                 if buzzer_pin is None:
                     raise ValueError("Output.buzzer_pin required for buzzer output")
                 self.buzzer_pin = buzzer_pin
@@ -566,7 +566,7 @@ class Player:
         )
         self._stream.play()
 
-    def _play_wav(self):
+    def _play_wav_i2s(self):
         from mpos.audio.stream_wav import WAVStream
 
         self._stream = WAVStream(
@@ -579,6 +579,23 @@ class Player:
         )
         self._stream.play()
 
+    def _play_wav_pa(self):
+        from mpos.audio.stream_wav import WAVStream
+
+        self._stream = WAVStreamPA(
+            file_path=self.file_path,
+            stream_type=self.stream_type,
+            volume = 100,
+            on_complete=self.on_complete,
+            requested_sample_rate=self.sample_rate,
+        )
+        self._stream.play()
+        
+    def _play_wav_pa(self):
+        if self.kind == "i2s":
+            self._play_wav_i2s()
+        else:
+            self._play_wav_pa()
 
 class Recorder:
     def __init__(
@@ -659,6 +676,7 @@ class Recorder:
         )
         self._stream.record()
 
+        # Basically we want stream_record_pulse() which does the recording stuff
     def _record_adc(self):
         from mpos.audio.stream_record_adc import ADCRecordStream
 
