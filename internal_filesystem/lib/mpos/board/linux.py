@@ -129,7 +129,7 @@ input_i2s_pins = {
     'sd_in': 0,     # Simulated - enables microphone simulation
 }
 
-AudioManager.add(AudioManager.Output("speaker", "i2s", i2s_pins=output_i2s_pins))
+AudioManager.add(AudioManager.Output("speaker", "pa"))
 AudioManager.add(AudioManager.Input("mic", "i2s", i2s_pins=input_i2s_pins))
 
 # === LED HARDWARE ===
