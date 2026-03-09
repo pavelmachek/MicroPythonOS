@@ -580,7 +580,7 @@ class Player:
         self._stream.play()
 
     def _play_wav_pa(self):
-        from mpos.audio.stream_wav import WAVStream
+        from mpos.audio.stream_wav import WAVStreamPA
 
         self._stream = WAVStreamPA(
             file_path=self.file_path,
@@ -591,8 +591,8 @@ class Player:
         )
         self._stream.play()
         
-    def _play_wav_pa(self):
-        if self.kind == "i2s":
+    def _play_wav(self):
+        if self.output.kind == "i2s":
             self._play_wav_i2s()
         else:
             self._play_wav_pa()
