@@ -639,6 +639,8 @@ class WAVStreamPA(WAVStreamBase):
 
         try:
             os.system("paplay " + self.file_path)
+            if self.on_complete:
+                self.on_complete(f"Finished: {self.file_path}")
         except Exception as e:
             print(f"WAVStream: Error: {e}")
             if self.on_complete:
