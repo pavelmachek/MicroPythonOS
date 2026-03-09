@@ -37,7 +37,8 @@ if [ -f "$script" ]; then
 	echo "Running script $script"
 	"$binary" -v -i "$script"
 else
-	CONFIG_DIR="data/com.micropythonos.settings/
+	echo "Running app $script"
+	CONFIG_DIR="data/com.micropythonos.settings/"
 	CONFIG_FILE="$CONFIG_DIR/config.json"
 	if [ -n "$script" ]; then
 		echo "run_desktop.sh: running app $script"
