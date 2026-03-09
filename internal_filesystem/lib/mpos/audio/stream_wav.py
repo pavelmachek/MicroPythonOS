@@ -160,51 +160,7 @@ def _volume_to_shift(scale_fixed):
         threshold >>= 1
     return shift
 
-class WAVStream:
-    """
-    WAV file playback stream with I2S output.
-    Supports 8/16/24/32-bit PCM, mono and stereo, auto-upsampling to >=8000 Hz.
-    """
-
-    def __init__(
-        self,
-        file_path,
-        stream_type,
-        volume,
-        i2s_pins,
-        on_complete,
-        requested_sample_rate=None,
-    ):
-        """
-        Initialize WAV stream.
-
-        Args:
-            file_path: Path to WAV file
-            stream_type: Stream type (STREAM_MUSIC, STREAM_NOTIFICATION, STREAM_ALARM)
-            volume: Volume level (0-100)
-            i2s_pins: Dict with 'sck', 'ws', 'sd' pin numbers
-            on_complete: Callback function(message) when playback finishes
-            requested_sample_rate: Optional negotiated sample rate for shared clocks
-        """
-        self.file_path = file_path
-        self.stream_type = stream_type
-        self.volume = volume
-        self.i2s_pins = i2s_pins
-        self.on_complete = on_complete
-        self.requested_sample_rate = requested_sample_rate
-        self._keep_running = True
-        self._is_playing = False
-        self._i2s = None
-        self._mck_pwm = None
-        self._progress_samples = 0
-        self._total_samples = 0
-        self._duration_ms = None
-        self._playback_rate = None
-        self._original_rate = None
-        self._channels = None
-        self._bits_per_sample = None
-        self._data_size = None
-
+class WAVStreamBase:
     def is_playing(self):
         """Check if stream is currently playing."""
         return self._is_playing
@@ -391,6 +347,54 @@ class WAVStream:
                 upsampled[out_idx + 1] = hi
                 out_idx += 2
         return upsampled
+
+    def set_volume(self, vol):
+        self.volume = vol
+
+class WAVStream(WAVStreamBase):
+    """
+    WAV file playback stream with I2S output.
+    Supports 8/16/24/32-bit PCM, mono and stereo, auto-upsampling to >=8000 Hz.
+    """
+
+    def __init__(
+        self,
+        file_path,
+        stream_type,
+        volume,
+        i2s_pins,
+        on_complete,
+        requested_sample_rate=None,
+    ):
+        """
+        Initialize WAV stream.
+
+        Args:
+            file_path: Path to WAV file
+            stream_type: Stream type (STREAM_MUSIC, STREAM_NOTIFICATION, STREAM_ALARM)
+            volume: Volume level (0-100)
+            i2s_pins: Dict with 'sck', 'ws', 'sd' pin numbers
+            on_complete: Callback function(message) when playback finishes
+            requested_sample_rate: Optional negotiated sample rate for shared clocks
+        """
+        self.file_path = file_path
+        self.stream_type = stream_type
+        self.volume = volume
+        self.i2s_pins = i2s_pins
+        self.on_complete = on_complete
+        self.requested_sample_rate = requested_sample_rate
+        self._keep_running = True
+        self._is_playing = False
+        self._i2s = None
+        self._progress_samples = 0
+        self._total_samples = 0
+        self._duration_ms = None
+        self._playback_rate = None
+        self._original_rate = None
+        self._channels = None
+        self._bits_per_sample = None
+        self._data_size = None
+
 
     # ----------------------------------------------------------------------
     #  Main playback routine
@@ -588,12 +592,3 @@ class WAVStream:
                 print("Done playing, doing i2s deinit")
                 self._i2s.deinit() # disabling this does not fix the "play just once" issue
                 self._i2s = None
-            if self._mck_pwm:
-                try:
-                    print("Done playing, stopping MCLK PWM")
-                    self._mck_pwm.deinit()
-                finally:
-                    self._mck_pwm = None
-
-    def set_volume(self, vol):
-        self.volume = vol
