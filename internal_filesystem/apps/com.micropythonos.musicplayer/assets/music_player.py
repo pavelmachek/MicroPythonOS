@@ -54,7 +54,7 @@ class MusicPlayer(Activity):
                 #else:
                 #    print("INFO: ignoring unsupported file format")
 
-class FullscreenPlayer(Activity):
+class MusicPlayer(Activity):
     # No __init__() so super.__init__() will be called automatically
 
     # Widgets:
@@ -68,7 +68,8 @@ class FullscreenPlayer(Activity):
     _filename = None
 
     def onCreate(self):
-        self._filename = self.getIntent().extras.get("filename")
+        #self._filename = self.getIntent().extras.get("filename")
+        self._filename = "sound.wav"
         qr_screen = lv.obj()
 
         audio_volume = AudioManager.get_volume()
