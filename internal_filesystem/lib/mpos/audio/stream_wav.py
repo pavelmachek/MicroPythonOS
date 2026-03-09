@@ -15,7 +15,7 @@ USE_I2S_SHIFT_VOLUME = False
 # Volume scaling function - Viper-optimized for ESP32 performance
 # NOTE: The line below is automatically commented out by build_mpos.sh during
 # Unix/macOS builds (cross-compiler doesn't support Viper), then uncommented after build.
-@micropython.viper
+#@micropython.viper
 def _scale_audio(buf: ptr8, num_bytes: int, scale_fixed: int):
     """Fast volume scaling for 16-bit audio samples using Viper (ESP32 native code emitter)."""
     for i in range(0, num_bytes, 2):
@@ -32,7 +32,7 @@ def _scale_audio(buf: ptr8, num_bytes: int, scale_fixed: int):
         buf[i] = sample & 255
         buf[i + 1] = (sample >> 8) & 255
 
-@micropython.viper
+#@micropython.viper
 def _scale_audio_optimized(buf: ptr8, num_bytes: int, scale_fixed: int):
     if scale_fixed >= 32768:
         return
@@ -72,7 +72,7 @@ def _scale_audio_optimized(buf: ptr8, num_bytes: int, scale_fixed: int):
         buf[i]   = r & 0xFF
         buf[i+1] = (r >> 8) & 0xFF
 
-@micropython.viper
+#@micropython.viper
 def _scale_audio_rough(buf: ptr8, num_bytes: int, scale_fixed: int):
     """Rough volume scaling for 16-bit audio samples using right shifts for performance."""
     if scale_fixed >= 32768:
@@ -102,7 +102,7 @@ def _scale_audio_rough(buf: ptr8, num_bytes: int, scale_fixed: int):
         buf[i] = sample & 255
         buf[i + 1] = (sample >> 8) & 255
 
-@micropython.viper
+#@micropython.viper
 def _scale_audio_shift(buf: ptr8, num_bytes: int, shift: int):
     """Rough volume scaling for 16-bit audio samples using right shifts for performance."""
     if shift <= 0:
@@ -125,7 +125,7 @@ def _scale_audio_shift(buf: ptr8, num_bytes: int, shift: int):
         buf[i] = sample & 255
         buf[i + 1] = (sample >> 8) & 255
 
-@micropython.viper
+#@micropython.viper
 def _scale_audio_powers_of_2(buf: ptr8, num_bytes: int, shift: int):
     if shift <= 0:
         return
