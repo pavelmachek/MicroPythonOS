@@ -104,12 +104,19 @@ except Exception as e:
 
 # Simulated battery voltage ADC measuring
 from mpos import BatteryManager
+from mpos.imu.drivers.iio import SysfsDir
+
+batdir = SysfsDir()
+batdir.path = batdir.find_dir_with_file("charge_now", "/sys/class/power_supply")
 
 def adc_to_voltage(adc_value):
     """Convert simulated ADC value to voltage."""
-    return adc_value * (3.3 / 4095) * 2
+    if not batdir.path:
+        return adc_value * (3.3 / 4095) * 2
+    return batdir._read_int(batdir.path + "/voltage_now") / 1000000
 
 BatteryManager.init_adc(999, adc_to_voltage)
+
 
 # === AUDIO HARDWARE ===
 from mpos import AudioManager

@@ -39,15 +39,14 @@ class SysfsDir:
             return None
 
         for entry in entries:
-            print("Entry:", entry)
-            if not entry.startswith("iio:device"):
-                continue
-
             dev_path = base_dir + "/" + entry
             if not self._is_dir(dev_path):
                 continue
 
-            if self._exists(dev_path + "/" + filename):
+            want = dev_path + "/" + filename
+            print("Entry:", entry, " want", want)
+            
+            if self._exists(want):
                 return dev_path
 
         return None
