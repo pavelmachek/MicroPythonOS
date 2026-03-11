@@ -18,21 +18,19 @@ class IIODriver(IMUDriverBase):
     def __init__(self):
         super().__init__()
         self.accel_path = self.find_iio_device_with_file("in_accel_x_raw")
+        self.ensure_sampling_frequency_max(self.accel_path)
         self.mag_path = self.find_iio_device_with_file("in_magn_x_raw")
+
+        self.ensure_sampling_frequency_max(self.mag_path)
         self.gyro_path = self.find_iio_device_with_file("in_anglvel_x_raw")
+        self.ensure_sampling_frequency_max(self.gyro_path)
+
         self.available = any((self.accel_path, self.mag_path, self.gyro_path))
 
         if not self.available:
             print("IIO: no IIO sensors detected")
             return
-
-        if self.accel_path:
-            self.ensure_sampling_frequency_max(self.accel_path)
-        if self.mag_path:
-            self.ensure_sampling_frequency_max(self.mag_path)
-        if self.gyro_path:
-            self.ensure_sampling_frequency_max(self.gyro_path)
-
+        
     def _p(self, name: str):
         return self.accel_path + "/" + name
 
@@ -135,9 +133,12 @@ class IIODriver(IMUDriverBase):
         Returns:
           (changed: bool, max_freq: float or None, current: float or None)
         """
+<<<<<<< HEAD
         if not dev_path:
             return (False, None, None)
 
+=======
+>>>>>>> 0ac9d715 (gyro: add gyroscope test/display application (#76))
         sf = dev_path + "/sampling_frequency"
         sfa = dev_path + "/sampling_frequency_available"
 
