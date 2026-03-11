@@ -1613,7 +1613,7 @@ if False:
     print()
     os.exit(1)
 
-if False:
+if True:
     lm = LocationManager()
 elif False:
     lm = LocationManagerDBUS()
