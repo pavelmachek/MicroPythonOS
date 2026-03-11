@@ -31,7 +31,8 @@ class SysfsDir:
         Returns None if not found.
         """
 
-        print("Is dir? ", self._is_dir(base_dir), base_dir)
+        if False:
+            print("Is dir? ", self._is_dir(base_dir), base_dir)
         try:
             entries = os.listdir(base_dir)
         except OSError:
@@ -44,8 +45,6 @@ class SysfsDir:
                 continue
 
             want = dev_path + "/" + filename
-            print("Entry:", entry, " want", want)
-            
             if self._exists(want):
                 return dev_path
 
