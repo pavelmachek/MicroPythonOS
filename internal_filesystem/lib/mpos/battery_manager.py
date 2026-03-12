@@ -10,22 +10,26 @@ import time
 MIN_VOLTAGE = 3.15
 MAX_VOLTAGE = 4.15
 
-# Internal state
-_adc = None
-_conversion_func = None
-_adc_pin = None
+class AdcBattery:
+    # Internal state
+    _adc = None
+    _conversion_func = None
+    _adc_pin = None
 
-# Cache to reduce WiFi interruptions (ADC2 requires WiFi to be disabled)
-_cached_raw_adc = None
-_last_read_time = 0
-CACHE_DURATION_ADC1_MS = 30000   # 30 seconds (cheaper: no WiFi interference)
-CACHE_DURATION_ADC2_MS = 600000  # 600 seconds (expensive: requires WiFi disable)
+    # Cache to reduce WiFi interruptions (ADC2 requires WiFi to be disabled)
+    _cached_raw_adc = None
+    _last_read_time = 0
+    CACHE_DURATION_ADC1_MS = 30000   # 30 seconds (cheaper: no WiFi interference)
+    CACHE_DURATION_ADC2_MS = 600000  # 600 seconds (expensive: requires WiFi disable)
 
+    def _is_adc2_pin(self, pin):
+        """Check if pin is on ADC2 (ESP32-S3: GPIO11-20)."""
+        return 11 <= pin <= 20
 
-def _is_adc2_pin(pin):
-    """Check if pin is on ADC2 (ESP32-S3: GPIO11-20)."""
-    return 11 <= pin <= 20
+    def read_raw_adc(self):
+        return 0
 
+bat = None
 
 class BatteryManager:
     """
@@ -37,6 +41,7 @@ class BatteryManager:
 
     @staticmethod
     def init_adc(pinnr, adc_to_voltage_func):
+        global bat
         """
         Initialize ADC for battery voltage monitoring.
 
@@ -49,23 +54,23 @@ class BatteryManager:
             adc_to_voltage_func: Conversion function that takes raw ADC value (0-4095)
                                  and returns battery voltage in volts
         """
-        global _adc, _conversion_func, _adc_pin
 
-        _conversion_func = adc_to_voltage_func
-        _adc_pin = pinnr
+        bat = AdcBattery()
+        bat._conversion_func = adc_to_voltage_func
+        bat._adc_pin = pinnr
 
         try:
             print(f"Initializing ADC pin {pinnr} with conversion function")
-            if _is_adc2_pin(pinnr):
+            if bat._is_adc2_pin(pinnr):
                 print(f"  WARNING: GPIO{pinnr} is on ADC2 - WiFi will be disabled during readings")
             from machine import ADC, Pin
-            _adc = ADC(Pin(pinnr))
-            _adc.atten(ADC.ATTN_11DB)  # 0-3.3V range
+            bat._adc = ADC(Pin(pinnr))
+            bat._adc.atten(ADC.ATTN_11DB)  # 0-3.3V range
         except Exception as e:
             print(f"Info: this platform has no ADC for measuring battery voltage: {e}")
 
-        initial_adc_value = BatteryManager.read_raw_adc()
-        print(f"Reading ADC at init to fill cache: {initial_adc_value} => {BatteryManager.read_battery_voltage(raw_adc_value=initial_adc_value)}V => {BatteryManager.get_battery_percentage(raw_adc_value=initial_adc_value)}%")
+        initial_adc_value = bat.read_raw_adc()
+        #print(f"Reading ADC at init to fill cache: {initial_adc_value} => {BatteryManager.read_battery_voltage(raw_adc_value=initial_adc_value)}V => {BatteryManager.get_battery_percentage(raw_adc_value=initial_adc_value)}%")
 
     @staticmethod
     def has_battery():
@@ -75,7 +80,7 @@ class BatteryManager:
         Returns:
             bool: True if init_adc() was called, False otherwise
         """
-        return _adc_pin is not None
+        return bat is not None
 
     @staticmethod
     def read_raw_adc(force_refresh=False):
@@ -94,10 +99,9 @@ class BatteryManager:
         Raises:
             RuntimeError: If WifiService is busy (only when using ADC2)
         """
-        global _cached_raw_adc, _last_read_time
 
         # Desktop mode - return random value in typical ADC range
-        if not _adc:
+        if not bat._adc:
             import random
             return random.randint(1900, 2600)
 
@@ -136,8 +140,8 @@ class BatteryManager:
             raw_value = total / 10.0
 
             # Update cache
-            _cached_raw_adc = raw_value
-            _last_read_time = current_time
+            bat._cached_raw_adc = raw_value
+            bat._last_read_time = current_time
 
             return raw_value
 
@@ -159,7 +163,7 @@ class BatteryManager:
             float: Battery voltage in volts (clamped to 0-MAX_VOLTAGE)
         """
         raw = raw_adc_value if raw_adc_value else BatteryManager.read_raw_adc(force_refresh)
-        voltage = _conversion_func(raw) if _conversion_func else 0.0
+        voltage = bat._conversion_func(raw) if bat._conversion_func else 0.0
         return voltage
 
     @staticmethod
@@ -180,6 +184,5 @@ class BatteryManager:
     @staticmethod
     def clear_cache():
         """Clear the battery voltage cache to force fresh reading on next call."""
-        global _cached_raw_adc, _last_read_time
-        _cached_raw_adc = None
-        _last_read_time = 0
+        bat._cached_raw_adc = None
+        bat._last_read_time = 0
