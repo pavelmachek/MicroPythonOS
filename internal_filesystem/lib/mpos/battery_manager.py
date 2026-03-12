@@ -70,7 +70,7 @@ class BatteryManager:
             print(f"Info: this platform has no ADC for measuring battery voltage: {e}")
 
         initial_adc_value = bat.read_raw_adc()
-        #print(f"Reading ADC at init to fill cache: {initial_adc_value} => {BatteryManager.read_battery_voltage(raw_adc_value=initial_adc_value)}V => {BatteryManager.get_battery_percentage(raw_adc_value=initial_adc_value)}%")
+        print(f"Reading ADC at init to fill cache: {initial_adc_value} => {BatteryManager.read_battery_voltage(raw_adc_value=initial_adc_value)}V => {BatteryManager.get_battery_percentage(raw_adc_value=initial_adc_value)}%")
 
     @staticmethod
     def has_battery():
