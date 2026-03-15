@@ -6,6 +6,7 @@ Handles ADC1/ADC2 pin differences on ESP32-S3 with adaptive caching to minimize 
 """
 
 import time
+from mpos.imu.drivers.iio import SysfsDir
 
 MIN_VOLTAGE = 3.15
 MAX_VOLTAGE = 4.15
@@ -29,6 +30,25 @@ class AdcBattery:
     def read_raw_adc(self):
         return 0
 
+    def is_charging(self):
+        return False
+
+class LinuxBattery:
+    _adc = None
+    
+    def init(self):
+        self.batdir = SysfsDir()
+        self.batdir.path = self.batdir.find_dir_with_file("charge_now", "/sys/class/power_supply")
+
+    def read_raw_adc(self):
+        return 0
+
+    def is_charging(self):
+        return False
+
+    def read_voltage(self):
+        return self.batdir._read_int(self.batdir.path + "/voltage_now") / 1000000
+    
 bat = None
 
 class BatteryManager:
@@ -73,6 +93,13 @@ class BatteryManager:
         print(f"Reading ADC at init to fill cache: {initial_adc_value} => {BatteryManager.read_battery_voltage(raw_adc_value=initial_adc_value)}V => {BatteryManager.get_battery_percentage(raw_adc_value=initial_adc_value)}%")
 
     @staticmethod
+    def init_linux():
+        global bat
+
+        bat = LinuxBattery()
+        bat.init()
+        
+    @staticmethod
     def has_battery():
         """
         Check if battery monitoring is initialized.
@@ -81,6 +108,10 @@ class BatteryManager:
             bool: True if init_adc() was called, False otherwise
         """
         return bat is not None
+
+    @staticmethod
+    def is_charging():
+        return bat.is_charging()
 
     @staticmethod
     def read_raw_adc(force_refresh=False):
@@ -162,6 +193,8 @@ class BatteryManager:
         Returns:
             float: Battery voltage in volts (clamped to 0-MAX_VOLTAGE)
         """
+        if bat.read_voltage:
+            return bat.read_voltage()
         raw = raw_adc_value if raw_adc_value else BatteryManager.read_raw_adc(force_refresh)
         voltage = bat._conversion_func(raw) if bat._conversion_func else 0.0
         return voltage

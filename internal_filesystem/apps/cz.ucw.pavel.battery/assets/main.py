@@ -142,7 +142,10 @@ class Main(Activity):
 
             self.lbl_battery_raw.set_text(f"Raw ADC: {BatteryManager.read_raw_adc()}")
 
-            self.lbl_charge.set_text(lv.SYMBOL.CHARGE)
+            if BatteryManager.is_charging():
+                self.lbl_charge.set_text(lv.SYMBOL.CHARGE)
+            else:
+                self.lbl_charge.set_text("")
 
             # --- HISTORY GRAPH ---
             self.history_v.append(voltage)
