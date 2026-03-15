@@ -44,7 +44,7 @@ class LinuxBattery:
         return 0
 
     def is_charging(self):
-        return False
+        return self.batdir._read_text(self.batdir.path + "/status") == "Charging"
 
     def read_voltage(self):
         return self.batdir._read_int(self.batdir.path + "/voltage_now") / 1000000
