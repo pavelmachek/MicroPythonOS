@@ -48,6 +48,9 @@ class LinuxBattery:
 
     def read_voltage(self):
         return self.batdir._read_int(self.batdir.path + "/voltage_now") / 1000000
+
+    def read_capacity(self):
+        return self.batdir._read_int(self.batdir.path + "/capacity") / 1
     
 bat = None
 
@@ -210,6 +213,8 @@ class BatteryManager:
         Returns:
             float: Battery percentage (0-100)
         """
+        if bat.read_capacity:
+            return bat.read_capacity()
         voltage = BatteryManager.read_battery_voltage(raw_adc_value=raw_adc_value)
         percentage = (voltage - MIN_VOLTAGE) * 100.0 / (MAX_VOLTAGE - MIN_VOLTAGE)
         return max(0, min(100.0, percentage))  # limit to 100.0% and make sure it's positive
