@@ -1,42 +1,4 @@
 """
-from machine import ADC, Pin # do this inside the try because it will fail on desktop
-adc = ADC(Pin(13))
-# Set ADC to 11dB attenuation for 0–3.3V range (common for ESP32)
-adc.atten(ADC.ATTN_11DB)
-adc.read()
-
-scale factor 0.002 is (4.15 / 4095) * 2
-BUT shows 4.90 instead of 4.13
-BUT shows 5.018 instead of 4.65 (raw ADC read: 2366)
-SO substract 0.77
-# at 2366
-
-2506 is 4.71 (not 4.03)
-scale factor 0.002 is (4.15 / 4095) * 2
-BUT shows 4.90 instead of 4.13
-BUT shows 5.018 instead of 4.65 (raw ADC read: 2366)
-SO substract 0.77
-# at 2366
-
-USB power:
-2506 is 4.71 (not 4.03)
-2498
-2491
-
-battery power:
-2482 is 4.180
-2470 is 4.170
-2457 is 4.147
-2433 is 4.109
-2429 is 4.102
-2393 is 4.044
-2369 is 4.000
-2343 is 3.957
-2319 is 3.916
-2269 is 3.831
-
-I want application that will show big time (hour, minutes), with smaller seconds, date, and current battery parameters on the left side, on the right side, i want big battery icon, green when over 30 percent, red otherwise, and in bottom left I want graph of history values for voltage and percentage.
-
 """
 
 import lvgl as lv
@@ -78,9 +40,9 @@ class Main(Activity):
         self.lbl_battery_raw = lv.label(info_column)
         self.lbl_battery_raw.set_style_text_font(lv.font_montserrat_14, 0)
 
-        self.clear_cache_checkbox = lv.checkbox(info_column)
-        self.clear_cache_checkbox.set_text("Real-time values")
-
+        self.lbl_charge = lv.label(info_column)
+        self.lbl_charge.set_style_text_font(lv.font_montserrat_24, 0)
+        
         # --- BOTTOM FLEX BOX: GRAPH ---
 
         self.canvas_width = main_content.get_width()
@@ -157,10 +119,6 @@ class Main(Activity):
 
             # --- BATTERY VALUES ---
 
-            if self.clear_cache_checkbox.get_state() & lv.STATE.CHECKED:
-                # Get "real-time" values by clearing the cache before reading
-                BatteryManager.clear_cache()
-
             voltage = BatteryManager.read_battery_voltage()
             percent = BatteryManager.get_battery_percentage()
 
@@ -183,6 +141,8 @@ class Main(Activity):
             self.lbl_battery.set_style_text_color(lv.palette_main(bg_color), 0)
 
             self.lbl_battery_raw.set_text(f"Raw ADC: {BatteryManager.read_raw_adc()}")
+
+            self.lbl_charge.set_text(lv.SYMBOL.CHARGE)
 
             # --- HISTORY GRAPH ---
             self.history_v.append(voltage)
