@@ -125,7 +125,7 @@ class Launcher(Activity):
 
             # ----- events --------------------------------------------------
             app_cont.add_event_cb(lambda e, fullname=app.fullname: AppManager.start_app(fullname),lv.EVENT.CLICKED, None)
-            app_cont.add_event_cb(lambda e, cont=app_cont: self.focus_app_cont(cont),lv.EVENT.FOCUSED, None)
+            #app_cont.add_event_cb(lambda e, cont=app_cont: self.focus_app_cont(cont),lv.EVENT.FOCUSED, None)
             app_cont.add_event_cb(lambda e, cont=app_cont: self.defocus_app_cont(cont),lv.EVENT.DEFOCUSED, None)
 
             if focusgroup:
