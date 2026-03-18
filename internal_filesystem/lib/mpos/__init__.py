@@ -25,7 +25,7 @@ from .device_manager import DeviceManager
 
 # Battery manager (imported early for UI dependencies)
 from .battery_manager import BatteryManager
-from .webserver.webserver import WebServer
+#from .webserver.webserver import WebServer
 from .notification_manager import NotificationManager, Notification
 
 # Common activities
