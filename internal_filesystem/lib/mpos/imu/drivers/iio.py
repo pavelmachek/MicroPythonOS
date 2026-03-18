@@ -74,7 +74,10 @@ class SysfsDir:
 class IIODir(SysfsDir):
     def init(self, name):
         self.path = self.find_dir_with_file(name, "/sys/bus/iio/devices/")
-        self.ensure_sampling_frequency_max(self.path)
+        if self.path:
+            self.ensure_sampling_frequency_max(self.path)
+        else:
+            print("iio device with", name, "not available")
 
     def _parse_available_freqs(self, text):
         """
@@ -224,7 +227,7 @@ class IIODriver(IMUDriverBase):
         self.accel = IIODir()
         self.mag = IIODir()
         self.gyro = IIODir()
-
+        
         self.accel.init("in_accel_x_raw")
         self.gyro.init("in_anglvel_x_raw")
         self.mag.init("in_magn_x_raw")
@@ -234,7 +237,7 @@ class IIODriver(IMUDriverBase):
         if not self.available:
             print("IIO: no IIO sensors detected")
             return
-
+        
     def _raw_acceleration_mps2(self):
         if not self.accel.path:
             return (0.0, 0.0, 0.0)
