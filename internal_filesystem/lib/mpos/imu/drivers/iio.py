@@ -299,5 +299,4 @@ class IIODriver(IMUDriverBase):
         if not self._exists(raw_path) or not self._exists(scale_path):
             return None
         return self._read_raw_scaled(raw_path, scale_path)
->>>>>>> fd6a469a (iio: refactor directory handing to allow future changes)
 
