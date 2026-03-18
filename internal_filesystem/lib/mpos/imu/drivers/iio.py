@@ -130,6 +130,9 @@ class IIODir(SysfsDir):
         sf = dev_path + "/sampling_frequency"
         sfa = dev_path + "/sampling_frequency_available"
 
+        if not self._exists(sf) or not self._exists(sfa):
+            return (False, None, None)
+
         # read current
         cur_s = self._read_text(sf)
         cur = float(cur_s)
