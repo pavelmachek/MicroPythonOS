@@ -1,5 +1,3 @@
-from mpos import Activity, MposKeyboard
-
 """
 Micropythonos, research/write an application to edit text files, using available resources. You may need to do something like vi.
 
@@ -15,6 +13,7 @@ except ImportError:
     pass
 
 from mpos import Activity, MposKeyboard
+from textin import *
 
 class Main(Activity):
     def __init__(self, filename = "delme.txt"):
@@ -157,26 +156,8 @@ class Main(Activity):
         print("Edit...")
         idx = self.cursor
 
-        popup = lv.obj(self.scr)
-        popup.set_size(lv.pct(100), lv.pct(100))
-        popup.center()
-
-        ta = lv.textarea(popup)
-        ta.set_width(lv.pct(100))
-        ta.set_text(self.lines[idx])
-        ta.set_one_line(True)
-        ta.align(lv.ALIGN.TOP_MID, 0, 2)
-
-        btn_ok = lv.button(popup)
-        btn_ok.align_to(ta, lv.ALIGN.OUT_BOTTOM_RIGHT, -30, 10)
-        lv.label(btn_ok).set_text("OK")
-
-        btn_cancel = lv.button(popup)
-        btn_cancel.align_to(ta, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 10)
-        lv.label(btn_cancel).set_text("Cancel")
-
-        keyboard = MposKeyboard(popup)
-        keyboard.set_textarea(ta)
+        intent = mpos.Intent(activity_class=EditLine)
+        self.startActivity(intent)
 
         def save_edit(e):
             self.lines[idx] = ta.get_text()
@@ -184,9 +165,6 @@ class Main(Activity):
             popup.delete()
             self.render_lines()
             self.update_header()
-
-        btn_ok.add_event_cb(save_edit, lv.EVENT.CLICKED, None)
-        btn_cancel.add_event_cb(lambda e: popup.delete(), lv.EVENT.CLICKED, None)
 
     def insert_line(self, e=None):
         print("Insert...")
@@ -208,4 +186,6 @@ class Main(Activity):
     def quit_app(self, e=None):
         self.scr.clean()
 
-
+class EditLine(TextIn):
+    def on_apply(self, e):
+        print("editline -- onapply", self.pos_ta.get_text())
