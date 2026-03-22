@@ -75,8 +75,13 @@ class TextIn(Activity):
         lbl_back.set_text("Back")
         lbl_back.center()
 
-        keyboard = MposKeyboard(self.scr)
-        keyboard.set_textarea(self.pos_ta)
+        if False:
+            keyboard = MposKeyboard(self.scr)
+            keyboard.set_textarea(self.pos_ta)
+        else:
+            keyboard = lv.keyboard(self.scr)
+            keyboard.set_textarea(self.pos_ta)
+            
 
         self.setContentView(self.scr)
 
