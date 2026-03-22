@@ -31,9 +31,10 @@ class TextIn(Activity):
         self.pos_ta.align(lv.ALIGN.TOP_MID, 0, 18)
         self.pos_ta.set_placeholder_text("N 50 30.123 E 14 13.231")
 
-        title = lv.label(self.scr)
-        title.set_text("Goto position")
-        title.align_to(self.pos_ta, lv.ALIGN.OUT_BOTTOM_MID, 0, 10)
+        if False:
+            title = lv.label(self.scr)
+            title.set_text("Goto position")
+            title.align_to(self.pos_ta, lv.ALIGN.OUT_BOTTOM_MID, 0, 10)
 
         if False:
             # Filename input
@@ -42,10 +43,11 @@ class TextIn(Activity):
             self.file_ta.align(lv.ALIGN.TOP_MID, 0, 10)
             self.file_ta.set_placeholder_text("track.txt")
 
-        # Record checkbox
-        self.record_cb = lv.checkbox(self.scr)
-        self.record_cb.set_text("Record track")
-        self.record_cb.align_to(title, lv.ALIGN.OUT_BOTTOM_MID, 0, 10)
+        if False:
+            # Record checkbox
+            self.record_cb = lv.checkbox(self.scr)
+            self.record_cb.set_text("Record track")
+            self.record_cb.align_to(self.pos_ta, lv.ALIGN.OUT_BOTTOM_MID, 0, 10)
 
         if False:
             # Status label
@@ -55,8 +57,8 @@ class TextIn(Activity):
 
         # Apply button
         apply_btn = lv.button(self.scr)
-        apply_btn.set_size(120, 50)
-        apply_btn.align(lv.ALIGN.BOTTOM_RIGHT, -20, -5)
+        apply_btn.set_size(60, 30)
+        apply_btn.align_to(self.pos_ta, lv.ALIGN.OUT_BOTTOM_RIGHT, 0, 10)
         apply_btn.add_event_cb(self.on_apply, lv.EVENT.CLICKED, None)
 
         lbl_apply = lv.label(apply_btn)
@@ -65,8 +67,8 @@ class TextIn(Activity):
 
         # Back button
         back_btn = lv.button(self.scr)
-        back_btn.set_size(120, 50)
-        back_btn.align(lv.ALIGN.BOTTOM_LEFT, 20, -5)
+        back_btn.set_size(60, 30)
+        back_btn.align_to(self.pos_ta, lv.ALIGN.OUT_BOTTOM_LEFT, 0, 10)
         back_btn.add_event_cb(self.on_back, lv.EVENT.CLICKED, None)
 
         lbl_back = lv.label(back_btn)
