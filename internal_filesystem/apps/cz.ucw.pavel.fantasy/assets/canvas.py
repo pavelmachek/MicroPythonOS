@@ -27,7 +27,14 @@ class Canvas:
         self.draw_w = self.W
         self.draw_h = self.H
 
+        # This is ratio Samsung s4 mini uses, should allow integer scaling
+        self.draw_w = 180
+        self.draw_h = 320
+
         self.canvas = canvas
+        self.canvas.set_size(self.draw_w, self.draw_h)
+        self.canvas.align(lv.ALIGN.TOP_LEFT, 0, 25)
+        self.canvas.set_style_border_width(0, 0)
 
         # Background: white (change if you want dark theme)
         self.canvas.set_style_bg_color(lv.color_white(), lv.PART.MAIN)
@@ -35,7 +42,10 @@ class Canvas:
         # Buffer: your working example uses 4 bytes/pixel
         # Reality filter: this depends on LV_COLOR_DEPTH; but your example proves it works.
         self.buf = bytearray(self.draw_w * self.draw_h * 4)
-        self.canvas.set_buffer(self.buf, self.draw_w, self.draw_h, lv.COLOR_FORMAT.NATIVE)
+        self.canvas.set_buffer(self.buf, self.draw_w, self.draw_h, lv.COLOR_FORMAT.ARGB8888
+)
+        print(dir(self.canvas))
+        self.canvas.set_style_transform_scale(256 * 2, 0)
 
         # Layer used for draw engine
         self.layer = lv.layer_t()
@@ -43,6 +53,13 @@ class Canvas:
 
         # Clear once
         self.clear()
+        for i in range(self.draw_w):
+            self.put_pixel(i, i, 255, 0, 0)
+            self.put_pixel(i, self.draw_h-i-1, 255, 0, 0)
+            self.put_pixel(i, self.draw_h//2, 0, 255, 0)
+        for i in range(self.draw_h):
+            self.put_pixel(self.draw_w//2, i, 0, 0, 255)
+
 
     # ----------------------------
     # Layer lifecycle
@@ -60,11 +77,19 @@ class Canvas:
     # Public API: drawing
     # ----------------------------
 
+    def put_pixel(self, x, y, r, g, b):
+        i = (y * self.draw_w + x) * 4
+        self.buf[i] = b
+        self.buf[i+1] = g
+        self.buf[i+2] = r
+        self.buf[i+3] = 255
+
     def clear(self):
         # Clear the canvas background
         self.canvas.fill_bg(lv.color_white(), lv.OPA.COVER)
 
     def update(self):
+        self.canvas.invalidate()
         # Nothing needed; drawing is committed per primitive.
         # If you want, you can change the implementation so that:
         # - draw ops happen between clear() and update()
@@ -95,9 +120,6 @@ class CanvasActivity(Activity):
 
         # Canvas
         self.canvas = lv.canvas(self.scr)
-        self.canvas.set_size(self.draw_w, self.draw_h)
-        self.canvas.align(lv.ALIGN.TOP_LEFT, 0, 0)
-        self.canvas.set_style_border_width(0, 0)
         
         self.c = Canvas(self.scr, self.canvas)
         

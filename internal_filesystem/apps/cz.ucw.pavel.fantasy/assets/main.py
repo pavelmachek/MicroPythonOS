@@ -14,7 +14,7 @@ except ImportError:
     pass
 
 from mpos import Activity, MposKeyboard
-import canvas
+from canvas import *
 
 TMP = "/tmp/cmd.json"
 
