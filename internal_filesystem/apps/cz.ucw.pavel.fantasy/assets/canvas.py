@@ -213,10 +213,10 @@ It uses the Bresenham algorithm.
 
 ### clip
 `clip(x y width height)
-clip()`
+noclip()`
 This function limits drawing to a clipping region or `viewport` defined by x,y,w,h.
 Things drawn outside of this area will not be visible.
-Calling clip() with no parameters will reset the drawing area to the entire screen.
+Calling noclip() 
 
 ### cls
 `cls(color=0)`
@@ -257,10 +257,9 @@ This function returns the mouse coordinates and a boolean value for the state of
 
 ### pix
 `pix(x y color)
-pix(x y) -> color`
+get_pix(x y) -> color`
 This function can read or write pixel color values.
 When called with a color parameter, the pixel at the specified coordinates is set to that color.
-Calling the function without a color parameter returns the color of the pixel at the specified position.
 
 ### print
 `print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false) -> width`
