@@ -7,6 +7,12 @@ from mpos import Activity, MposKeyboard, InputManager
 # Canvas (LVGL)
 # -----------------------------
 
+class Color:
+    def __init__(self, r,g,b):
+        self.r = r
+        self.g = g
+        self.b = b
+
 class Canvas:
     """
     LVGL canvas + layer drawing Canvas.
@@ -59,11 +65,11 @@ class Canvas:
         # Clear once
         self.clear()
         for i in range(self.draw_w):
-            self.put_pixel(i, i, 255, 0, 0)
-            self.put_pixel(i, self.draw_h-i-1, 255, 0, 0)
-            self.put_pixel(i, self.draw_h//2, 0, 255, 0)
+            self.put_pixel(i, i, Color(255, 0, 0))
+            self.put_pixel(i, self.draw_h-i-1, Color(255, 0, 0))
+            self.put_pixel(i, self.draw_h//2, Color(0, 255, 0))
         for i in range(self.draw_h):
-            self.put_pixel(self.draw_w//2, i, 0, 0, 255)
+            self.put_pixel(self.draw_w//2, i, Color(0, 0, 255))
 
 
     # --- Event handler ---
@@ -73,7 +79,7 @@ class Canvas:
             if event_code == lv.EVENT.PRESSING: # this is probably enough       
                 x, y = InputManager.pointer_xy()
                 print("Pressing", x, y)
-                self.put_pixel(x/self.scale,y/self.scale, 128,128,128)
+                self.put_pixel(x/self.scale,y/self.scale, Color(128,128,128))
                 self.update()
 		return
         
@@ -114,21 +120,21 @@ class Canvas:
     # Public API: drawing
     # ----------------------------
 
-    def __put_pixel(self, x, y, r, g, b):
+    def __put_pixel(self, x, y, c):
         i = (y * self.draw_w + x) * 4
-        self.buf[i] = b
-        self.buf[i+1] = g
-        self.buf[i+2] = r
+        self.buf[i] = c.b
+        self.buf[i+1] = c.g
+        self.buf[i+2] = c.r
         self.buf[i+3] = 255
 
-    def put_pixel(self, x, y, r, g, b):
+    def put_pixel(self, x, y, c):
         x = int(x)
         y = int(y)
         if x < 0 or x >= self.draw_w:
             return
         if y < 0 or y >= self.draw_h:
             return
-        self.__put_pixel(x, y, r, g, b)
+        self.__put_pixel(x, y, c)
 
     def clear(self):
         # Clear the canvas background
@@ -141,6 +147,163 @@ class Canvas:
         # - draw ops happen between clear() and update()
         # But then you must ensure the app calls update() once per frame.
         pass
+
+class Tic(Canvas):
+    """
+    Trick with direct exec of tic80-code might be feasible, something like
+
+    6. exec hack (⚠️ not recommended)
+
+        exec(\"\"\"
+        x = 10
+        y = 20
+        \"\"\", {}, self.__dict__)
+
+        👉 This actually lets you write code without self.
+
+        BUT:
+        hard to debug
+        unsafe if input is dynamic
+        no IDE support    
+            ...
+
+    LVGL should be able to do indexed 4 -- I4 -- palette.
+
+    API description is at:
+        https://tic80.com/learn
+
+
+### BOOT
+`BOOT`
+Startup function.
+
+### MENU
+`MENU(index)`
+Game Menu handler.
+
+### TIC
+`TIC()`
+Main function. It's called at 60fps (60 times every second).
+
+### btn
+`btn(id) -> pressed`
+This function allows you to read the status of one of the buttons attached to TIC.
+The function returns true if the key with the supplied id is currently in the pressed state.
+It remains true for as long as the key is held down.
+If you want to test if a key was just pressed, use `btnp()` instead.
+
+### btnp
+`btnp(id hold=-1 period=-1) -> pressed`
+This function allows you to read the status of one of TIC's buttons.
+It returns true only if the key has been pressed since the last frame.
+You can also use the optional hold and period parameters which allow you to check if a button is being held down.
+After the time specified by hold has elapsed, btnp will return true each time period is passed if the key is still down.
+For example, to re-examine the state of button `0` after 2 seconds and continue to check its state every 1/10th of a second, you would use btnp(0, 120, 6).
+Since time is expressed in ticks and TIC runs at 60 frames per second, we use the value of 120 to wait 2 seconds and 6 ticks (ie 60/10) as the interval for re-checking.
+
+### circ
+`circ(x y radius color)`
+This function draws a filled circle of the desired radius and color with its center at x, y.
+It uses the Bresenham algorithm.
+
+### circb
+`circb(x y radius color)`
+Draws the circumference of a circle with its center at x, y using the radius and color requested.
+It uses the Bresenham algorithm.
+
+### clip
+`clip(x y width height)
+clip()`
+This function limits drawing to a clipping region or `viewport` defined by x,y,w,h.
+Things drawn outside of this area will not be visible.
+Calling clip() with no parameters will reset the drawing area to the entire screen.
+
+### cls
+`cls(color=0)`
+Clear the screen.
+When called this function clear all the screen using the color passed as argument.
+If no parameter is passed first color (0) is used.
+
+### elli
+`elli(x y a b color)`
+This function draws a filled ellipse of the desired a, b radiuses and color with its center at x, y.
+It uses the Bresenham algorithm.
+
+### ellib
+`ellib(x y a b color)`
+This function draws an ellipse border with the desired radiuses a b and color with its center at x, y.
+It uses the Bresenham algorithm.
+
+### exit
+`exit()`
+Interrupts program execution and returns to the console when the TIC function ends.
+
+### key
+`key(code=-1) -> pressed`
+The function returns true if the key denoted by keycode is pressed.
+
+### keyp
+`keyp(code=-1 hold=-1 period=-1) -> pressed`
+This function returns true if the given key is pressed but wasn't pressed in the previous frame.
+Refer to `btnp()` for an explanation of the optional hold and period parameters.
+
+### line
+`line(x0 y0 x1 y1 color)`
+Draws a straight line from point (x0,y0) to point (x1,y1) in the specified color.
+
+### mouse
+`mouse() -> x y left middle right scrollx scrolly`
+This function returns the mouse coordinates and a boolean value for the state of each mouse button,with true indicating that a button is pressed.
+
+### pix
+`pix(x y color)
+pix(x y) -> color`
+This function can read or write pixel color values.
+When called with a color parameter, the pixel at the specified coordinates is set to that color.
+Calling the function without a color parameter returns the color of the pixel at the specified position.
+
+### print
+`print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false) -> width`
+This will simply print text to the screen using the font defined in config.
+When set to true, the fixed width option ensures that each character will be printed in a `box` of the same size, so the character `i` will occupy the same width as the character `w` for example.
+When fixed width is false, there will be a single space between each character.
+
+### rect
+`rect(x y w h color)`
+This function draws a filled rectangle of the desired size and color at the specified position.
+If you only need to draw the the border or outline of a rectangle (ie not filled) see `rectb()`.
+
+### rectb
+`rectb(x y w h color)`
+This function draws a one pixel thick rectangle border at the position requested.
+If you need to fill the rectangle with a color, see `rect()` instead.
+
+
+
+### time
+`time() -> ticks`
+This function returns the number of milliseconds elapsed since the cartridge began execution.
+Useful for keeping track of time, animating items and triggering events.
+
+### trace
+`trace(message color=15)`
+This is a service function, useful for debugging your code.
+It prints the message parameter to the console in the (optional) color specified.
+
+### tri
+`tri(x1 y1 x2 y2 x3 y3 color)`
+This function draws a triangle filled with color, using the supplied vertices.
+
+### trib
+`trib(x1 y1 x2 y2 x3 y3 color)`
+This function draws a triangle border with color, using the supplied vertices.
+
+### tstamp
+`tstamp() -> timestamp`
+This function returns the number of seconds elapsed since January 1st, 1970.
+Useful for creating persistent games which evolve over time between plays.
+        
+    """
 
 # ----------------------------
 # App logic
