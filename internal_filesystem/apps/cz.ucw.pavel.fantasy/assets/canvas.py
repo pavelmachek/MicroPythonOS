@@ -177,10 +177,6 @@ class Tic(Canvas):
 `BOOT`
 Startup function.
 
-### MENU
-`MENU(index)`
-Game Menu handler.
-
 ### TIC
 `TIC()`
 Main function. It's called at 60fps (60 times every second).
@@ -303,6 +299,330 @@ This function returns the number of seconds elapsed since January 1st, 1970.
 Useful for creating persistent games which evolve over time between plays.
         
     """
+
+    def BOOT(self):
+        pass
+
+    def TIC(self):
+        pass
+    
+    def _in_clip(self, x, y):
+        if self.clip_rect is None:
+            return 0 <= x < self.width and 0 <= y < self.height
+        cx, cy, cw, ch = self.clip_rect
+        return (cx <= x < cx + cw) and (cy <= y < cy + ch)
+
+
+    def pix(self, x, y, color=None):
+        if not (0 <= x < self.width and 0 <= y < self.height):
+            return None
+
+        if color is None:
+            return self.pixels[y][x]
+
+        if self._in_clip(x, y):
+            self.__put_pixel(x, y, color)
+
+
+    def get_pix(self, x, y):
+        return self.pix(x, y)
+
+    def clip(self, x, y, w, h):
+        self.clip_rect = (x, y, w, h)
+
+
+    def noclip(self):
+        self.clip_rect = None
+
+    def cls(self, color=0):
+        for y in range(self.height):
+            for x in range(self.width):
+                self.__put_pixel(x, y, color)
+
+    def line(self, x0, y0, x1, y1, color):
+        dx = abs(x1 - x0)
+        dy = -abs(y1 - y0)
+        sx = 1 if x0 < x1 else -1
+        sy = 1 if y0 < y1 else -1
+        err = dx + dy
+
+        while True:
+            self.pix(x0, y0, color)
+            if x0 == x1 and y0 == y1:
+                break
+            e2 = 2 * err
+            if e2 >= dy:
+                err += dy
+                x0 += sx
+            if e2 <= dx:
+                err += dx
+                y0 += sy
+
+    def rect(self, x, y, w, h, color):
+        for j in range(y, y + h):
+            for i in range(x, x + w):
+                self.pix(i, j, color)
+
+
+    def rectb(self, x, y, w, h, color):
+        for i in range(x, x + w):
+            self.pix(i, y, color)
+            self.pix(i, y + h - 1, color)
+
+        for j in range(y, y + h):
+            self.pix(x, j, color)
+            self.pix(x + w - 1, j, color)
+
+    def circb(self, cx, cy, r, color):
+        x = r
+        y = 0
+        err = 0
+
+        while x >= y:
+            pts = [
+                (cx + x, cy + y), (cx + y, cy + x),
+                (cx - y, cy + x), (cx - x, cy + y),
+                (cx - x, cy - y), (cx - y, cy - x),
+                (cx + y, cy - x), (cx + x, cy - y),
+            ]
+            for px, py in pts:
+                self.pix(px, py, color)
+
+            y += 1
+            if err <= 0:
+                err += 2*y + 1
+            if err > 0:
+                x -= 1
+                err -= 2*x + 1
+
+    def ellib(self, cx, cy, a, b, color):
+        x = 0
+        y = b
+
+        a2 = a * a
+        b2 = b * b
+
+        d1 = b2 - a2 * b + 0.25 * a2
+        dx = 2 * b2 * x
+        dy = 2 * a2 * y
+
+        # Region 1
+        while dx < dy:
+            self._plot_ellipse_points(cx, cy, x, y, color)
+            if d1 < 0:
+                x += 1
+                dx += 2 * b2
+                d1 += dx + b2
+            else:
+                x += 1
+                y -= 1
+                dx += 2 * b2
+                dy -= 2 * a2
+                d1 += dx - dy + b2
+
+        # Region 2
+        d2 = (b2 * (x + 0.5)**2) + (a2 * (y - 1)**2) - (a2 * b2)
+
+        while y >= 0:
+            self._plot_ellipse_points(cx, cy, x, y, color)
+            if d2 > 0:
+                y -= 1
+                dy -= 2 * a2
+                d2 += a2 - dy
+            else:
+                y -= 1
+                x += 1
+                dx += 2 * b2
+                dy -= 2 * a2
+                d2 += dx - dy + a2
+
+
+    def _plot_ellipse_points(self, cx, cy, x, y, color):
+        pts = [
+            (cx + x, cy + y), (cx - x, cy + y),
+            (cx + x, cy - y), (cx - x, cy - y),
+        ]
+        for px, py in pts:
+            self.pix(px, py, color)
+
+    def elli(self, cx, cy, a, b, color):
+        for y in range(-b, b + 1):
+            # Solve ellipse equation for x span
+            x_span = int(a * (1 - (y*y)/(b*b))**0.5)
+            for x in range(-x_span, x_span + 1):
+                self.pix(cx + x, cy + y, color)
+
+    def tri(self, x1, y1, x2, y2, x3, y3, color):
+        pts = sorted([(x1,y1), (x2,y2), (x3,y3)], key=lambda p: p[1])
+        (x1,y1), (x2,y2), (x3,y3) = pts
+
+        def interp(y, y0, x0, y1, x1):
+            if y1 == y0:
+                return x0
+            return int(x0 + (x1 - x0) * (y - y0) / (y1 - y0))
+
+        for y in range(y1, y3 + 1):
+            if y < y2:
+                xa = interp(y, y1, x1, y3, x3)
+                xb = interp(y, y1, x1, y2, x2)
+            else:
+                xa = interp(y, y1, x1, y3, x3)
+                xb = interp(y, y2, x2, y3, x3)
+
+            if xa > xb:
+                xa, xb = xb, xa
+
+            for x in range(xa, xb + 1):
+                self.pix(x, y, color)
+
+    def trib(self, x1, y1, x2, y2, x3, y3, color):
+        self.line(x1, y1, x2, y2, color)
+        self.line(x2, y2, x3, y3, color)
+        self.line(x3, y3, x1, y1, color)
+
+    def time(self):
+        return int((time.perf_counter() - self.start_time) * 1000)
+
+    def tstamp(self):
+        return int(time.time())
+
+    def trace(self, message, color=15):
+        print(f"[{color}] {message}")
+
+    TIC80_FONT = {
+        ' ': [0b0000,0b0000,0b0000,0b0000,0b0000,0b0000],
+        '!': [0b0100,0b0100,0b0100,0b0100,0b0000,0b0100],
+        '"': [0b1010,0b1010,0b0000,0b0000,0b0000,0b0000],
+        '#': [0b1010,0b1111,0b1010,0b1111,0b1010,0b0000],
+        '$': [0b0111,0b1100,0b0110,0b0011,0b1110,0b0100],
+        '%': [0b1001,0b0010,0b0100,0b1000,0b1001,0b0000],
+        '&': [0b0110,0b1001,0b0110,0b1001,0b0110,0b0000],
+        "'": [0b0100,0b0100,0b0000,0b0000,0b0000,0b0000],
+        '(': [0b0010,0b0100,0b0100,0b0100,0b0010,0b0000],
+        ')': [0b0100,0b0010,0b0010,0b0010,0b0100,0b0000],
+        '*': [0b0000,0b1010,0b0110,0b0110,0b1010,0b0000],
+        '+': [0b0000,0b0100,0b1110,0b0100,0b0000,0b0000],
+        ',': [0b0000,0b0000,0b0000,0b0100,0b0100,0b1000],
+        '-': [0b0000,0b0000,0b1110,0b0000,0b0000,0b0000],
+        '.': [0b0000,0b0000,0b0000,0b0000,0b1100,0b1100],
+        '/': [0b0001,0b0010,0b0100,0b1000,0b0000,0b0000],
+
+        '0': [0b0110,0b1001,0b1011,0b1101,0b1001,0b0110],
+        '1': [0b0010,0b0110,0b0010,0b0010,0b0010,0b0111],
+        '2': [0b0110,0b1001,0b0001,0b0010,0b0100,0b1111],
+        '3': [0b1110,0b0001,0b0110,0b0001,0b0001,0b1110],
+        '4': [0b0001,0b0011,0b0101,0b1111,0b0001,0b0001],
+        '5': [0b1111,0b1000,0b1110,0b0001,0b0001,0b1110],
+        '6': [0b0111,0b1000,0b1110,0b1001,0b1001,0b0110],
+        '7': [0b1111,0b0001,0b0010,0b0100,0b0100,0b0100],
+        '8': [0b0110,0b1001,0b0110,0b1001,0b1001,0b0110],
+        '9': [0b0110,0b1001,0b1001,0b0111,0b0001,0b1110],
+
+        ':': [0b0000,0b1100,0b1100,0b0000,0b1100,0b1100],
+        ';': [0b0000,0b1100,0b1100,0b0000,0b1100,0b0100],
+        '<': [0b0010,0b0100,0b1000,0b0100,0b0010,0b0000],
+        '=': [0b0000,0b1110,0b0000,0b1110,0b0000,0b0000],
+        '>': [0b0100,0b0010,0b0001,0b0010,0b0100,0b0000],
+        '?': [0b1110,0b0001,0b0010,0b0100,0b0000,0b0100],
+        '@': [0b0110,0b1001,0b1011,0b1011,0b1000,0b0111],
+
+        'A': [0b0110,0b1001,0b1001,0b1111,0b1001,0b1001],
+        'B': [0b1110,0b1001,0b1110,0b1001,0b1001,0b1110],
+        'C': [0b0111,0b1000,0b1000,0b1000,0b1000,0b0111],
+        'D': [0b1110,0b1001,0b1001,0b1001,0b1001,0b1110],
+        'E': [0b1111,0b1000,0b1110,0b1000,0b1000,0b1111],
+        'F': [0b1111,0b1000,0b1110,0b1000,0b1000,0b1000],
+        'G': [0b0111,0b1000,0b1000,0b1011,0b1001,0b0111],
+        'H': [0b1001,0b1001,0b1111,0b1001,0b1001,0b1001],
+        'I': [0b1110,0b0100,0b0100,0b0100,0b0100,0b1110],
+        'J': [0b0011,0b0001,0b0001,0b0001,0b1001,0b0110],
+        'K': [0b1001,0b1010,0b1100,0b1010,0b1001,0b1001],
+        'L': [0b1000,0b1000,0b1000,0b1000,0b1000,0b1111],
+        'M': [0b1001,0b1111,0b1111,0b1001,0b1001,0b1001],
+        'N': [0b1001,0b1101,0b1011,0b1001,0b1001,0b1001],
+        'O': [0b0110,0b1001,0b1001,0b1001,0b1001,0b0110],
+        'P': [0b1110,0b1001,0b1001,0b1110,0b1000,0b1000],
+        'Q': [0b0110,0b1001,0b1001,0b1001,0b1010,0b0101],
+        'R': [0b1110,0b1001,0b1001,0b1110,0b1010,0b1001],
+        'S': [0b0111,0b1000,0b0110,0b0001,0b0001,0b1110],
+        'T': [0b1111,0b0100,0b0100,0b0100,0b0100,0b0100],
+        'U': [0b1001,0b1001,0b1001,0b1001,0b1001,0b0110],
+        'V': [0b1001,0b1001,0b1001,0b1001,0b0101,0b0010],
+        'W': [0b1001,0b1001,0b1001,0b1111,0b1111,0b1001],
+        'X': [0b1001,0b1001,0b0110,0b0110,0b1001,0b1001],
+        'Y': [0b1001,0b1001,0b0110,0b0100,0b0100,0b0100],
+        'Z': [0b1111,0b0001,0b0010,0b0100,0b1000,0b1111],
+
+        '[': [0b0110,0b0100,0b0100,0b0100,0b0100,0b0110],
+        '\\': [0b1000,0b0100,0b0010,0b0001,0b0000,0b0000],
+        ']': [0b0110,0b0010,0b0010,0b0010,0b0010,0b0110],
+        '^': [0b0100,0b1010,0b0000,0b0000,0b0000,0b0000],
+        '_': [0b0000,0b0000,0b0000,0b0000,0b0000,0b1111],
+        '`': [0b0100,0b0010,0b0000,0b0000,0b0000,0b0000],
+
+        'a': [0b0000,0b0110,0b0001,0b0111,0b1001,0b0111],
+        'b': [0b1000,0b1000,0b1110,0b1001,0b1001,0b1110],
+        'c': [0b0000,0b0111,0b1000,0b1000,0b1000,0b0111],
+        'd': [0b0001,0b0001,0b0111,0b1001,0b1001,0b0111],
+        'e': [0b0000,0b0110,0b1001,0b1111,0b1000,0b0111],
+        'f': [0b0011,0b0100,0b1110,0b0100,0b0100,0b0100],
+        'g': [0b0000,0b0111,0b1001,0b0111,0b0001,0b1110],
+        'h': [0b1000,0b1000,0b1110,0b1001,0b1001,0b1001],
+        'i': [0b0100,0b0000,0b1100,0b0100,0b0100,0b1110],
+        'j': [0b0010,0b0000,0b0110,0b0010,0b0010,0b1100],
+        'k': [0b1000,0b1001,0b1010,0b1100,0b1010,0b1001],
+        'l': [0b1100,0b0100,0b0100,0b0100,0b0100,0b1110],
+        'm': [0b0000,0b1110,0b1111,0b1011,0b1011,0b1011],
+        'n': [0b0000,0b1110,0b1001,0b1001,0b1001,0b1001],
+        'o': [0b0000,0b0110,0b1001,0b1001,0b1001,0b0110],
+        'p': [0b0000,0b1110,0b1001,0b1110,0b1000,0b1000],
+        'q': [0b0000,0b0111,0b1001,0b0111,0b0001,0b0001],
+        'r': [0b0000,0b1011,0b1100,0b1000,0b1000,0b1000],
+        's': [0b0000,0b0111,0b1000,0b0110,0b0001,0b1110],
+        't': [0b0100,0b1110,0b0100,0b0100,0b0100,0b0011],
+        'u': [0b0000,0b1001,0b1001,0b1001,0b1001,0b0111],
+        'v': [0b0000,0b1001,0b1001,0b1001,0b0101,0b0010],
+        'w': [0b0000,0b1001,0b1001,0b1111,0b1111,0b0110],
+        'x': [0b0000,0b1001,0b0110,0b0110,0b1001,0b1001],
+        'y': [0b0000,0b1001,0b1001,0b0111,0b0001,0b1110],
+        'z': [0b0000,0b1111,0b0010,0b0100,0b1000,0b1111],
+
+        '{': [0b0011,0b0100,0b0100,0b0100,0b0100,0b0011],
+        '|': [0b0100,0b0100,0b0100,0b0100,0b0100,0b0100],
+        '}': [0b1100,0b0010,0b0010,0b0010,0b0010,0b1100],
+        '~': [0b0000,0b0110,0b1101,0b0000,0b0000,0b0000],
+    }
+
+    def _draw_char(self, x, y, ch, color, scale):
+        glyph = TIC80_FONT.get(ch.upper(), TIC80_FONT["?"])
+
+        for row in range(6):
+            bits = glyph[row]
+            for col in range(4):
+                if bits & (1 << (3 - col)):
+                    for sy in range(scale):
+                        for sx in range(scale):
+                            self.pix(
+                                x + col * scale + sx,
+                                y + row * scale + sy,
+                                color
+                            )
+
+    def print(self, text, x=0, y=0, color=15, fixed=False, scale=1, smallfont=False):
+        cursor_x = x
+
+        char_w = 4 * scale
+        spacing = scale  # 1 pixel spacing scaled
+
+        for ch in text:
+            self._draw_char(cursor_x, y, ch, color, scale)
+
+            if fixed:
+                cursor_x += char_w + spacing
+            else:
+                cursor_x += char_w + spacing  # TIC-80 still spaces; kerning is minimal
+
+        return cursor_x - x
 
 # ----------------------------
 # App logic
