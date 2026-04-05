@@ -13,6 +13,9 @@ class Color:
         self.g = g
         self.b = b
 
+    def __repr__(self):
+        return f"Color({self.r}, {self.g}, {self.b})"
+    
 class Canvas:
     """
     LVGL canvas + layer drawing Canvas.
@@ -660,6 +663,31 @@ class TicDemo(Tic):
     def BOOT(self):
         self.test1()
 
+    def tc(self, index):
+        """Return TIC-80 default color by index 0–15"""
+        palette = [
+            Color(0, 0, 0),         # 0: Black
+            Color(29, 43, 83),      # 1: Dark Blue
+            Color(126, 37, 83),     # 2: Dark Purple
+            Color(0, 135, 81),      # 3: Dark Green
+            Color(171, 82, 54),     # 4: Brown
+            Color(95, 87, 79),      # 5: Dark Gray
+            Color(194, 195, 199),   # 6: Light Gray
+            Color(255, 241, 232),   # 7: White
+            Color(255, 0, 77),      # 8: Red
+            Color(255, 163, 0),     # 9: Orange
+            Color(255, 236, 39),    # 10: Yellow
+            Color(0, 228, 54),      # 11: Green
+            Color(41, 173, 255),    # 12: Blue
+            Color(131, 118, 156),   # 13: Indigo
+            Color(255, 119, 168),   # 14: Pink
+            Color(255, 204, 170),   # 15: Peach
+        ]
+        if 0 <= index < 16:
+            return palette[index]
+        else:
+            raise ValueError("TIC-80 color index must be 0–15")
+
     def test1(self):
         self.circ(90, 100, 80, Color(170, 170, 0))
         self.circb(90, 100, 75, Color(170, 120, 0))
@@ -667,42 +695,42 @@ class TicDemo(Tic):
         self.print("Hello, world", x=1, color=Color(0,0,0))
         self.print("Hello, world", x=1, y=20, scale=2, color=Color(0,0,0))
 
-    def run_tests(api):
-        api.cls(0)
+    def test2(api):
+        api.cls(self.tc(0))
 
         # --- PIX ---
         for i in range(20):
-            api.pix(5 + i, 5, 12)
+            api.pix(5 + i, 5, self.tc(12))
 
         # --- LINE ---
-        api.line(0, 0, 50, 30, 11)
-        api.line(50, 0, 0, 30, 11)
+        api.line(0, 0, 50, 30, self.tc(11))
+        api.line(50, 0, 0, 30, self.tc(11))
 
         # --- RECT / RECTB ---
-        api.rect(60, 5, 20, 10, 2)
-        api.rectb(60, 5, 20, 10, 15)
+        api.rect(60, 5, 20, 10, self.tc(2))
+        api.rectb(60, 5, 20, 10, self.tc(15))
 
         # --- CIRCLE ---
-        api.circb(30, 60, 15, 14)
-        api.circ(70, 60, 15, 6)
+        api.circb(30, 60, 15, self.tc(14))
+        api.circ(70, 60, 15, self.tc(6))
 
         # --- ELLIPSE ---
-        api.ellib(120, 60, 20, 10, 13)
-        api.elli(160, 60, 15, 8, 5)
+        api.ellib(120, 60, 20, 10, self.tc(13))
+        api.elli(160, 60, 15, 8, self.tc(5))
 
         # --- TRIANGLES ---
-        api.trib(10, 90, 40, 90, 25, 70, 12)
-        api.tri(50, 90, 80, 90, 65, 70, 3)
+        api.trib(10, 90, 40, 90, 25, 70, self.tc(12))
+        api.tri(50, 90, 80, 90, 65, 70, self.tc(3))
 
         # --- CLIP TEST ---
         api.clip(100, 0, 40, 40)
-        api.rect(90, 0, 80, 40, 8)   # partially clipped
+        api.rect(90, 0, 80, 40, self.tc(8))   # partially clipped
         api.noclip()
 
         # --- TEXT ---
-        api.print("HELLO TIC80", 5, 110, 15)
-        api.print("123 ABC xyz", 5, 120, 10)
-        api.print("SCALED", 5, 130, 14, scale=2)
+        api.print("HELLO TIC80", 5, 110, self.tc(15))
+        api.print("123 ABC xyz", 5, 120, self.tc(10))
+        api.print("SCALED", 5, 130, self.tc(14), scale=2)
 
         # --- TIME / TSTAMP ---
         t = api.time()
