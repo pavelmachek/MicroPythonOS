@@ -2,6 +2,7 @@ import lvgl as lv
 import mpos
 from mpos import Activity, MposKeyboard, InputManager
 
+import time
 
 # -----------------------------
 # Canvas (LVGL)
@@ -512,7 +513,7 @@ Useful for creating persistent games which evolve over time between plays.
         self.line(x3, y3, x1, y1, color)
 
     def time(self):
-        return int((time.perf_counter() - self.start_time) * 1000)
+        return int((time.time() - self.start_time) * 1000)
 
     def tstamp(self):
         return int(time.time())
@@ -657,11 +658,12 @@ Useful for creating persistent games which evolve over time between plays.
 
 class TicDemo(Tic):
     def __init__(self, scr, canvas):
+        self.start_time = time.time()
         self.clip_rect = None
         super().__init__(scr, canvas)
     
     def BOOT(self):
-        self.test1()
+        self.test2()
 
     def tc(self, index):
         """Return TIC-80 default color by index 0–15"""
@@ -695,7 +697,8 @@ class TicDemo(Tic):
         self.print("Hello, world", x=1, color=Color(0,0,0))
         self.print("Hello, world", x=1, y=20, scale=2, color=Color(0,0,0))
 
-    def test2(api):
+    def test2(self):
+        api=self
         api.cls(self.tc(0))
 
         # --- PIX ---
@@ -735,13 +738,13 @@ class TicDemo(Tic):
         # --- TIME / TSTAMP ---
         t = api.time()
         ts = api.tstamp()
-        api.print(f"time:{t}", 120, 110, 9)
-        api.print(f"ts:{ts}", 120, 120, 9)
+        api.print(f"time:{t}", 120, 110, self.tc(9))
+        api.print(f"ts:{ts}", 120, 120, self.tc(9))
 
         # --- TRACE ---
         api.trace("All tests executed", 10)
 
-    def update(api):
+    def moving_test(api):
         api.cls(0)
 
         t = api.time() // 10
