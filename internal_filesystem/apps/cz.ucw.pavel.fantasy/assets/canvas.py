@@ -374,7 +374,34 @@ Useful for creating persistent games which evolve over time between plays.
             self.pix(x, j, color)
             self.pix(x + w - 1, j, color)
 
+    def _hline(self, x0, x1, y, color):
+        if x0 > x1:
+            x0, x1 = x1, x0
+
+        for x in range(x0, x1 + 1):
+            self.pix(x, y, color)
+
     def circ(self, cx, cy, r, color):
+        x = r
+        y = 0
+        err = 0
+
+        while x >= y:
+            # Draw horizontal spans between symmetric points
+            self._hline(cx - x, cx + x, cy + y, color)
+            self._hline(cx - x, cx + x, cy - y, color)
+            self._hline(cx - y, cx + y, cy + x, color)
+            self._hline(cx - y, cx + y, cy - x, color)
+
+            y += 1
+
+            if err <= 0:
+                err += 2 * y + 1
+            if err > 0:
+                x -= 1
+                err -= 2 * x + 1
+
+    def circb(self, cx, cy, r, color):
         x = r
         y = 0
         err = 0
