@@ -653,15 +653,82 @@ Useful for creating persistent games which evolve over time between plays.
         return cursor_x - x
 
 class TicDemo(Tic):
-    def BOOT(self):
+    def __init__(self, scr, canvas):
         self.clip_rect = None
+        super().__init__(scr, canvas)
+    
+    def BOOT(self):
+        self.test1()
+
+    def test1(self):
         self.circ(90, 100, 80, Color(170, 170, 0))
         self.circb(90, 100, 75, Color(170, 120, 0))
 
         self.print("Hello, world", x=1, color=Color(0,0,0))
         self.print("Hello, world", x=1, y=20, scale=2, color=Color(0,0,0))
 
-    
+    def run_tests(api):
+        api.cls(0)
+
+        # --- PIX ---
+        for i in range(20):
+            api.pix(5 + i, 5, 12)
+
+        # --- LINE ---
+        api.line(0, 0, 50, 30, 11)
+        api.line(50, 0, 0, 30, 11)
+
+        # --- RECT / RECTB ---
+        api.rect(60, 5, 20, 10, 2)
+        api.rectb(60, 5, 20, 10, 15)
+
+        # --- CIRCLE ---
+        api.circb(30, 60, 15, 14)
+        api.circ(70, 60, 15, 6)
+
+        # --- ELLIPSE ---
+        api.ellib(120, 60, 20, 10, 13)
+        api.elli(160, 60, 15, 8, 5)
+
+        # --- TRIANGLES ---
+        api.trib(10, 90, 40, 90, 25, 70, 12)
+        api.tri(50, 90, 80, 90, 65, 70, 3)
+
+        # --- CLIP TEST ---
+        api.clip(100, 0, 40, 40)
+        api.rect(90, 0, 80, 40, 8)   # partially clipped
+        api.noclip()
+
+        # --- TEXT ---
+        api.print("HELLO TIC80", 5, 110, 15)
+        api.print("123 ABC xyz", 5, 120, 10)
+        api.print("SCALED", 5, 130, 14, scale=2)
+
+        # --- TIME / TSTAMP ---
+        t = api.time()
+        ts = api.tstamp()
+        api.print(f"time:{t}", 120, 110, 9)
+        api.print(f"ts:{ts}", 120, 120, 9)
+
+        # --- TRACE ---
+        api.trace("All tests executed", 10)
+
+    def update(api):
+        api.cls(0)
+
+        t = api.time() // 10
+
+        # moving circle
+        api.circ(60 + (t % 50), 40, 10, 6)
+
+        # rotating triangle-ish motion
+        api.tri(120, 40,
+                140 + (t % 20), 60,
+                100 + (t % 20), 60,
+                3)
+
+        api.print(f"t={api.time()}", 5, 5, 15)
+        
 # ----------------------------
 # App logic
 # ----------------------------
