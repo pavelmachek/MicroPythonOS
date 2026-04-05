@@ -1,6 +1,6 @@
 import lvgl as lv
 import mpos
-from mpos import Activity, MposKeyboard
+from mpos import Activity, MposKeyboard, InputManager
 
 
 # -----------------------------
@@ -42,14 +42,19 @@ class Canvas:
         # Buffer: your working example uses 4 bytes/pixel
         # Reality filter: this depends on LV_COLOR_DEPTH; but your example proves it works.
         self.buf = bytearray(self.draw_w * self.draw_h * 4)
-        self.canvas.set_buffer(self.buf, self.draw_w, self.draw_h, lv.COLOR_FORMAT.ARGB8888
-)
+        self.canvas.set_buffer(self.buf, self.draw_w, self.draw_h, lv.COLOR_FORMAT.ARGB8888)
+
         print(dir(self.canvas))
+        
         self.canvas.set_style_transform_scale(256 * 2, 0)
 
         # Layer used for draw engine
         self.layer = lv.layer_t()
         self.canvas.init_layer(self.layer)
+
+        self.dragging = {"active": False, "last_x": 0, "last_y": 0}
+        self.canvas.add_flag(lv.obj.FLAG.CLICKABLE)
+        self.canvas.add_event_cb(self.touch_cb, lv.EVENT.ALL, None)
 
         # Clear once
         self.clear()
@@ -60,6 +65,38 @@ class Canvas:
         for i in range(self.draw_h):
             self.put_pixel(self.draw_w//2, i, 0, 0, 255)
 
+
+    # --- Event handler ---
+    def touch_cb(self, event):
+        event_code=event.get_code()
+	if event_code not in [19,23,25,26,27,28,29,30,49]:
+            if event_code == lv.EVENT.PRESSING: # this is probably enough       
+                x, y = InputManager.pointer_xy()
+                print("Pressing", x, y)
+                self.put_pixel(x,y, 128,128,128)
+                self.update()
+		return
+        
+        if event == lv.EVENT.PRESSED:
+            point = lv.point_t()
+            print("Touch:", point)
+            obj.get_act_point(point)  # gets touch point relative to canvas
+            self.dragging["active"] = True
+            self.dragging["last_x"] = point.x
+            self.dragging["last_y"] = point.y
+
+        elif event == lv.EVENT.RELEASED:
+            self.dragging["active"] = False
+
+        elif False: # event == lv.EVENT.MOVED and dragging["active"]:
+            point = lv.point_t()
+            obj.get_act_point(point)
+            dx = point.x - dragging["last_x"]
+            dy = point.y - dragging["last_y"]
+            self.dragging["last_x"] = point.x
+            self.dragging["last_y"] = point.y
+
+        print(self.dragging, event)
 
     # ----------------------------
     # Layer lifecycle
