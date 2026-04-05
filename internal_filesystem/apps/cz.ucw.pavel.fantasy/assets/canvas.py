@@ -30,15 +30,15 @@ class Canvas:
         self.H = scr.get_height()
 
         # Canvas drawing area (everything above button bar)
-        self.draw_w = self.W
-        self.draw_h = self.H
+        self.width = self.W
+        self.height = self.H
 
         # This is ratio Samsung s4 mini uses, should allow integer scaling
-        self.draw_w = 180
-        self.draw_h = 320
+        self.width = 180
+        self.height = 320
 
         self.canvas = canvas
-        self.canvas.set_size(self.draw_w, self.draw_h)
+        self.canvas.set_size(self.width, self.height)
         self.canvas.align(lv.ALIGN.TOP_LEFT, 0, 25)
         self.canvas.set_style_border_width(0, 0)
 
@@ -47,8 +47,8 @@ class Canvas:
 
         # Buffer: your working example uses 4 bytes/pixel
         # Reality filter: this depends on LV_COLOR_DEPTH; but your example proves it works.
-        self.buf = bytearray(self.draw_w * self.draw_h * 4)
-        self.canvas.set_buffer(self.buf, self.draw_w, self.draw_h, lv.COLOR_FORMAT.ARGB8888)
+        self.buf = bytearray(self.width * self.height * 4)
+        self.canvas.set_buffer(self.buf, self.width, self.height, lv.COLOR_FORMAT.ARGB8888)
 
         print(dir(self.canvas))
         self.scale = 2
@@ -64,13 +64,14 @@ class Canvas:
 
         # Clear once
         self.clear()
-        for i in range(self.draw_w):
+        for i in range(self.width):
             self.put_pixel(i, i, Color(255, 0, 0))
-            self.put_pixel(i, self.draw_h-i-1, Color(255, 0, 0))
-            self.put_pixel(i, self.draw_h//2, Color(0, 255, 0))
-        for i in range(self.draw_h):
-            self.put_pixel(self.draw_w//2, i, Color(0, 0, 255))
+            self.put_pixel(i, self.height-i-1, Color(255, 0, 0))
+            self.put_pixel(i, self.height//2, Color(0, 255, 0))
+        for i in range(self.height):
+            self.put_pixel(self.width//2, i, Color(0, 0, 255))
 
+        self.BOOT()
 
     # --- Event handler ---
     def touch_cb(self, event):
@@ -121,7 +122,7 @@ class Canvas:
     # ----------------------------
 
     def __put_pixel(self, x, y, c):
-        i = (y * self.draw_w + x) * 4
+        i = (y * self.width + x) * 4
         self.buf[i] = c.b
         self.buf[i+1] = c.g
         self.buf[i+2] = c.r
@@ -130,9 +131,9 @@ class Canvas:
     def put_pixel(self, x, y, c):
         x = int(x)
         y = int(y)
-        if x < 0 or x >= self.draw_w:
+        if x < 0 or x >= self.width:
             return
-        if y < 0 or y >= self.draw_h:
+        if y < 0 or y >= self.height:
             return
         self.__put_pixel(x, y, c)
 
@@ -373,7 +374,7 @@ Useful for creating persistent games which evolve over time between plays.
             self.pix(x, j, color)
             self.pix(x + w - 1, j, color)
 
-    def circb(self, cx, cy, r, color):
+    def circ(self, cx, cy, r, color):
         x = r
         y = 0
         err = 0
@@ -624,6 +625,12 @@ Useful for creating persistent games which evolve over time between plays.
 
         return cursor_x - x
 
+class TicDemo(Tic):
+    def BOOT(self):
+        self.clip_rect = None
+        self.circ(100, 100, 80, Color(170, 170, 0))
+
+    
 # ----------------------------
 # App logic
 # ----------------------------
@@ -643,13 +650,13 @@ class CanvasActivity(Activity):
         self.H = scr.get_height()
 
         # Canvas drawing area
-        self.draw_w = self.W
-        self.draw_h = self.H
+        self.width = self.W
+        self.height = self.H
 
         # Canvas
         self.canvas = lv.canvas(self.scr)
         
-        self.c = Canvas(self.scr, self.canvas)
+        self.c = TicDemo(self.scr, self.canvas)
         
         # Build buttons
         self.setContentView(self.c.scr)
