@@ -45,8 +45,8 @@ class Canvas:
         self.canvas.set_buffer(self.buf, self.draw_w, self.draw_h, lv.COLOR_FORMAT.ARGB8888)
 
         print(dir(self.canvas))
-        
-        self.canvas.set_style_transform_scale(256 * 2, 0)
+        self.scale = 2
+        self.canvas.set_style_transform_scale(256 * self.scale, 0)
 
         # Layer used for draw engine
         self.layer = lv.layer_t()
@@ -73,7 +73,7 @@ class Canvas:
             if event_code == lv.EVENT.PRESSING: # this is probably enough       
                 x, y = InputManager.pointer_xy()
                 print("Pressing", x, y)
-                self.put_pixel(x,y, 128,128,128)
+                self.put_pixel(x/self.scale,y/self.scale, 128,128,128)
                 self.update()
 		return
         
@@ -114,12 +114,21 @@ class Canvas:
     # Public API: drawing
     # ----------------------------
 
-    def put_pixel(self, x, y, r, g, b):
+    def __put_pixel(self, x, y, r, g, b):
         i = (y * self.draw_w + x) * 4
         self.buf[i] = b
         self.buf[i+1] = g
         self.buf[i+2] = r
         self.buf[i+3] = 255
+
+    def put_pixel(self, x, y, r, g, b):
+        x = int(x)
+        y = int(y)
+        if x < 0 or x >= self.draw_w:
+            return
+        if y < 0 or y >= self.draw_h:
+            return
+        self.__put_pixel(x, y, r, g, b)
 
     def clear(self):
         # Clear the canvas background
