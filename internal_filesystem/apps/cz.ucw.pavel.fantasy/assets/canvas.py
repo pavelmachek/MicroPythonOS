@@ -622,7 +622,7 @@ Useful for creating persistent games which evolve over time between plays.
     }
 
     def _draw_char(self, x, y, ch, color, scale):
-        glyph = TIC80_FONT.get(ch.upper(), TIC80_FONT["?"])
+        glyph = self.TIC80_FONT.get(ch.upper(), self.TIC80_FONT["?"])
 
         for row in range(6):
             bits = glyph[row]
@@ -655,7 +655,11 @@ Useful for creating persistent games which evolve over time between plays.
 class TicDemo(Tic):
     def BOOT(self):
         self.clip_rect = None
-        self.circ(100, 100, 80, Color(170, 170, 0))
+        self.circ(90, 100, 80, Color(170, 170, 0))
+        self.circb(90, 100, 75, Color(170, 120, 0))
+
+        self.print("Hello, world", x=1, color=Color(0,0,0))
+        self.print("Hello, world", x=1, y=20, scale=2, color=Color(0,0,0))
 
     
 # ----------------------------
