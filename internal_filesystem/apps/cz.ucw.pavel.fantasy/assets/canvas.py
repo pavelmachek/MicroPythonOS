@@ -325,9 +325,11 @@ Useful for creating persistent games which evolve over time between plays.
         if color is None:
             return self.pixels[y][x]
 
+        if type(color) is int:
+            color = self.tc(color)
+
         if self._in_clip(x, y):
             self.__put_pixel(x, y, color)
-
 
     def get_pix(self, x, y):
         return self.pix(x, y)
@@ -335,11 +337,11 @@ Useful for creating persistent games which evolve over time between plays.
     def clip(self, x, y, w, h):
         self.clip_rect = (x, y, w, h)
 
-
     def noclip(self):
         self.clip_rect = None
 
     def cls(self, color=0):
+        color = self.tc(color)
         for y in range(self.height):
             for x in range(self.width):
                 self.__put_pixel(x, y, color)
@@ -667,6 +669,10 @@ class TicDemo(Tic):
 
     def tc(self, index):
         """Return TIC-80 default color by index 0–15"""
+        
+        if not type(index) is int:
+            return index
+        
         palette = [
             Color(0, 0, 0),         # 0: Black
             Color(29, 43, 83),      # 1: Dark Blue
@@ -699,47 +705,47 @@ class TicDemo(Tic):
 
     def test2(self):
         api=self
-        api.cls(self.tc(0))
+        api.cls((0))
 
         # --- PIX ---
         for i in range(20):
-            api.pix(5 + i, 5, self.tc(12))
+            api.pix(5 + i, 5, 12)
 
         # --- LINE ---
-        api.line(0, 0, 50, 30, self.tc(11))
-        api.line(50, 0, 0, 30, self.tc(11))
+        api.line(0, 0, 50, 30, (11))
+        api.line(50, 0, 0, 30, (11))
 
         # --- RECT / RECTB ---
-        api.rect(60, 5, 20, 10, self.tc(2))
-        api.rectb(60, 5, 20, 10, self.tc(15))
+        api.rect(60, 5, 20, 10, (2))
+        api.rectb(60, 5, 20, 10, (15))
 
         # --- CIRCLE ---
-        api.circb(30, 60, 15, self.tc(14))
-        api.circ(70, 60, 15, self.tc(6))
+        api.circb(30, 60, 15, (14))
+        api.circ(70, 60, 15, (6))
 
         # --- ELLIPSE ---
-        api.ellib(120, 60, 20, 10, self.tc(13))
-        api.elli(160, 60, 15, 8, self.tc(5))
+        api.ellib(120, 60, 20, 10, (13))
+        api.elli(160, 60, 15, 8, (5))
 
         # --- TRIANGLES ---
-        api.trib(10, 90, 40, 90, 25, 70, self.tc(12))
-        api.tri(50, 90, 80, 90, 65, 70, self.tc(3))
+        api.trib(10, 90, 40, 90, 25, 70, (12))
+        api.tri(50, 90, 80, 90, 65, 70, (3))
 
         # --- CLIP TEST ---
         api.clip(100, 0, 40, 40)
-        api.rect(90, 0, 80, 40, self.tc(8))   # partially clipped
+        api.rect(90, 0, 80, 40, (8))   # partially clipped
         api.noclip()
 
         # --- TEXT ---
-        api.print("HELLO TIC80", 5, 110, self.tc(15))
-        api.print("123 ABC xyz", 5, 120, self.tc(10))
-        api.print("SCALED", 5, 130, self.tc(14), scale=2)
+        api.print("HELLO TIC80", 5, 110, (15))
+        api.print("123 ABC xyz", 5, 120, (10))
+        api.print("SCALED", 5, 130, (14), scale=2)
 
         # --- TIME / TSTAMP ---
         t = api.time()
         ts = api.tstamp()
-        api.print(f"time:{t}", 120, 110, self.tc(9))
-        api.print(f"ts:{ts}", 120, 120, self.tc(9))
+        api.print(f"time:{t}", 120, 110, (9))
+        api.print(f"ts:{ts}", 120, 120, (9))
 
         # --- TRACE ---
         api.trace("All tests executed", 10)
