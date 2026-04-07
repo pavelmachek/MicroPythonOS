@@ -54,7 +54,6 @@ class Canvas:
         self.buf = bytearray(self.width * self.height * 4)
         self.canvas.set_buffer(self.buf, self.width, self.height, lv.COLOR_FORMAT.ARGB8888)
 
-        print(dir(self.canvas))
         self.scale = 2
         self.canvas.set_style_transform_scale(256 * self.scale, 0)
 
@@ -85,7 +84,7 @@ class Canvas:
                 x, y = InputManager.pointer_xy()
                 print("Pressing", x, y)
                 self.put_pixel(x/self.scale,y/self.scale, Color(128,128,128))
-                self.update()
+                self.canvas_update()
 		return
         
         if event == lv.EVENT.PRESSED:
@@ -145,7 +144,7 @@ class Canvas:
         # Clear the canvas background
         self.canvas.fill_bg(lv.color_white(), lv.OPA.COVER)
 
-    def update(self):
+    def canvas_update(self):
         self.canvas.invalidate()
         # Nothing needed; drawing is committed per primitive.
         # If you want, you can change the implementation so that:
@@ -658,14 +657,10 @@ Useful for creating persistent games which evolve over time between plays.
 
         return cursor_x - x
 
-class TicDemo(Tic):
     def __init__(self, scr, canvas):
         self.start_time = time.time()
         self.clip_rect = None
         super().__init__(scr, canvas)
-    
-    def BOOT(self):
-        self.test2()
 
     def tc(self, index):
         """Return TIC-80 default color by index 0–15"""
@@ -695,6 +690,16 @@ class TicDemo(Tic):
             return palette[index]
         else:
             raise ValueError("TIC-80 color index must be 0–15")
+
+    def btnp(self, a):
+        return 0
+
+    def btn(self, a):
+        return 0
+    
+class TicDemo(Tic):
+    def BOOT(self):
+        self.test2()
 
     def test1(self):
         self.circ(90, 100, 80, Color(170, 170, 0))
@@ -750,7 +755,8 @@ class TicDemo(Tic):
         # --- TRACE ---
         api.trace("All tests executed", 10)
 
-    def moving_test(api):
+    def moving_test(self):
+        api = self
         api.cls(0)
 
         t = api.time() // 10
@@ -765,7 +771,224 @@ class TicDemo(Tic):
                 3)
 
         api.print(f"t={api.time()}", 5, 5, 15)
-        
+    
+import random
+
+class Game(Tic):
+    def BOOT(self):
+        self.w = 8
+        self.h = 16
+        self.cell = 8
+
+        self.colors = [2,3,4]
+
+        self.grid = [[0 for _ in range(self.w)] for _ in range(self.h)]
+        self.virus = [[False for _ in range(self.w)] for _ in range(self.h)]
+
+        self.score = 0
+        self.tick = 0
+
+        self.spawn_viruses(12)
+        self.spawn()
+
+    # -------------------------
+    # Setup
+    # -------------------------
+    def spawn_viruses(self, count):
+        placed = 0
+        while placed < count:
+            x = random.randint(0, self.w-1)
+            y = random.randint(self.h//2, self.h-1)
+
+            if self.grid[y][x] == 0:
+                col = random.choice(self.colors)
+                self.grid[y][x] = col
+                self.virus[y][x] = True
+                placed += 1
+
+    def spawn(self):
+        self.pill = {
+            "x": 3,
+            "y": 0,
+            "rot": 0,
+            "parts": [
+                [0,0,random.choice(self.colors)],
+                [1,0,random.choice(self.colors)]
+            ]
+        }
+
+    # -------------------------
+    # Helpers
+    # -------------------------
+    def cells(self, p):
+        res = []
+        for part in p["parts"]:
+            x,y,c = part
+
+            if p["rot"] == 1: x,y = -y,x
+            if p["rot"] == 2: x,y = -x,-y
+            if p["rot"] == 3: x,y = y,-x
+
+            res.append((p["x"]+x, p["y"]+y, c))
+        return res
+
+    def collides(self, p):
+        for x,y,_ in self.cells(p):
+            if x < 0 or x >= self.w or y >= self.h:
+                return True
+            if y >= 0 and self.grid[y][x] != 0:
+                return True
+        return False
+
+    # -------------------------
+    # Lock + Clear
+    # -------------------------
+    def lock(self):
+        for x,y,c in self.cells(self.pill):
+            if y >= 0:
+                self.grid[y][x] = c
+                self.virus[y][x] = False
+
+        total_cleared = self.resolve()
+        self.score += total_cleared * 100
+
+        self.spawn()
+
+    def resolve(self):
+        total = 0
+
+        while True:
+            cleared = self.clear_matches()
+            if cleared == 0:
+                break
+
+            total += cleared
+            self.apply_gravity()
+
+        return total
+
+    def clear_matches(self):
+        mark = [[False]*self.w for _ in range(self.h)]
+
+        # horizontal
+        for y in range(self.h):
+            count = 1
+            for x in range(1,self.w):
+                if self.grid[y][x] != 0 and self.grid[y][x] == self.grid[y][x-1]:
+                    count += 1
+                else:
+                    if count >= 4:
+                        for k in range(count):
+                            mark[y][x-1-k] = True
+                    count = 1
+            if count >= 4:
+                for k in range(count):
+                    mark[y][self.w-1-k] = True
+
+        # vertical
+        for x in range(self.w):
+            count = 1
+            for y in range(1,self.h):
+                if self.grid[y][x] != 0 and self.grid[y][x] == self.grid[y-1][x]:
+                    count += 1
+                else:
+                    if count >= 4:
+                        for k in range(count):
+                            mark[y-1-k][x] = True
+                    count = 1
+            if count >= 4:
+                for k in range(count):
+                    mark[self.h-1-k][x] = True
+
+        cleared = 0
+
+        for y in range(self.h):
+            for x in range(self.w):
+                if mark[y][x]:
+                    if self.grid[y][x] != 0:
+                        cleared += 1
+                    self.grid[y][x] = 0
+                    self.virus[y][x] = False
+
+        return cleared
+
+    def apply_gravity(self):
+        moved = True
+        while moved:
+            moved = False
+            for y in range(self.h-2, -1, -1):
+                for x in range(self.w):
+                    if self.grid[y][x] != 0 and self.grid[y+1][x] == 0:
+                        self.grid[y+1][x] = self.grid[y][x]
+                        self.grid[y][x] = 0
+
+                        self.virus[y+1][x] = self.virus[y][x]
+                        self.virus[y][x] = False
+
+                        moved = True
+
+    # -------------------------
+    # Update
+    # -------------------------
+    def update(self):
+        self.tick += 1
+
+        if self.btnp(2):
+            self.pill["x"] -= 1
+            if self.collides(self.pill):
+                self.pill["x"] += 1
+
+        if self.btnp(3):
+            self.pill["x"] += 1
+            if self.collides(self.pill):
+                self.pill["x"] -= 1
+
+        if self.btnp(4):
+            old = self.pill["rot"]
+            self.pill["rot"] = (old + 1) % 4
+            if self.collides(self.pill):
+                self.pill["rot"] = old
+
+        speed = 30
+        if self.btn(1):
+            speed = 5
+
+        if self.tick % speed == 0:
+            self.pill["y"] += 1
+            if self.collides(self.pill):
+                self.pill["y"] -= 1
+                self.lock()
+
+    # -------------------------
+    # Draw
+    # -------------------------
+    def draw(self):
+        self.cls(0)
+
+        # grid
+        for y in range(self.h):
+            for x in range(self.w):
+                c = self.grid[y][x]
+                if c != 0:
+                    self.rect(x*self.cell, y*self.cell, self.cell, self.cell, c)
+
+                    # draw virus marker
+                    if self.virus[y][x]:
+                        self.circ(x*self.cell+4, y*self.cell+4, 2, 0)
+
+        # pill
+        for x,y,c in self.cells(self.pill):
+            if y >= 0:
+                self.rect(x*self.cell, y*self.cell, self.cell, self.cell, c)
+
+        # score
+        self.print("SCORE: {}".format(self.score), 70, 10, 12)
+
+    # -------------------------
+    def TIC(self):
+        self.update()
+        self.draw()
+
 # ----------------------------
 # App logic
 # ----------------------------
@@ -791,13 +1014,13 @@ class CanvasActivity(Activity):
         # Canvas
         self.canvas = lv.canvas(self.scr)
         
-        self.c = TicDemo(self.scr, self.canvas)
+        self.c = Game(self.scr, self.canvas)
         
         # Build buttons
         self.setContentView(self.c.scr)
 
     def onResume(self, screen):
-        self.timer = lv.timer_create(self.tick, 1000, None)
+        self.timer = lv.timer_create(self.tick, 1000//60, None)
 
     def onPause(self, screen):
         if self.timer:
@@ -805,14 +1028,7 @@ class CanvasActivity(Activity):
             self.timer = None
             
     def tick(self, t):
-        self.update()
-        self.draw()
-
-    def update(self):
-        pass
-
-    def draw_page_example(self):
-        pass
-
-    def draw(self):
-        self.draw_page_example()
+        print("tick")
+        self.c.TIC()
+        self.c.canvas_update()
+        print("tick done")

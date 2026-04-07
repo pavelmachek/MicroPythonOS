@@ -68,7 +68,7 @@ class Main(CanvasActivity):
         text = self.sms.get_text()
         cm.sms(num, text)
 
-    def tick(self, t):
+    def no_tick(self, t):
         now = time.localtime()
         y, m, d = now[0], now[1], now[2]
         hh, mm, ss = now[3], now[4], now[5]
