@@ -79,13 +79,22 @@ class Canvas:
     # --- Event handler ---
     def touch_cb(self, event):
         event_code=event.get_code()
-	if event_code not in [19,23,25,26,27,28,29,30,49]:
-            if event_code == lv.EVENT.PRESSING: # this is probably enough       
-                x, y = InputManager.pointer_xy()
-                print("Pressing", x, y)
-                self.put_pixel(x/self.scale,y/self.scale, Color(128,128,128))
-                self.canvas_update()
-		return
+	#if event_code not in [19,23,25,26,27,28,29,30,49]:
+        if event_code == lv.EVENT.PRESSING: # this is probably enough       
+            x, y = InputManager.pointer_xy()
+            print("Pressing", x, y)
+            x /= self.scale
+            y /= self.scale
+            self.put_pixel(x, y, Color(128,128,128))
+            self.dragging["active"] = True
+            self.dragging["last_x"] = x
+            self.dragging["last_y"] = y
+            self.canvas_update()
+            return
+        if event_code == lv.EVENT.RELEASED:
+            print("Released")
+            self.dragging["active"] = False
+        return
         
         if event == lv.EVENT.PRESSED:
             point = lv.point_t()
@@ -691,6 +700,11 @@ Useful for creating persistent games which evolve over time between plays.
         else:
             raise ValueError("TIC-80 color index must be 0–15")
 
+    def mouse(self):
+        x = 10
+        y = 10
+        return (x, y, 1, 0, 0, 0, 0)
+
     def btnp(self, a):
         return 0
 
@@ -774,7 +788,11 @@ class TicDemo(Tic):
     
 import random
 
-class Game(Tic):
+class TicButton(Tic):
+    pass
+
+
+class Game(TicButton):
     def BOOT(self):
         self.w = 8
         self.h = 16
@@ -807,13 +825,15 @@ class Game(Tic):
                 placed += 1
 
     def spawn(self):
+        def rcolor(): return random.choice(self.colors)
+        def rcolor(): return self.colors[0]
         self.pill = {
             "x": 3,
             "y": 0,
             "rot": 0,
             "parts": [
-                [0,0,random.choice(self.colors)],
-                [1,0,random.choice(self.colors)]
+                [0,0,rcolor()],
+                [1,0,rcolor()]
             ]
         }
 
@@ -949,7 +969,7 @@ class Game(Tic):
             if self.collides(self.pill):
                 self.pill["rot"] = old
 
-        speed = 30
+        speed = 6
         if self.btn(1):
             speed = 5
 
