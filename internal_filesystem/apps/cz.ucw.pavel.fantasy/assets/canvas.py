@@ -62,6 +62,7 @@ class Canvas:
         self.canvas.init_layer(self.layer)
 
         self.dragging = {"active": False, "last_x": 0, "last_y": 0}
+        self.last_dragging = {"active": False, "last_x": 0, "last_y": 0}
         self.canvas.add_flag(lv.obj.FLAG.CLICKABLE)
         self.canvas.add_event_cb(self.touch_cb, lv.EVENT.ALL, None)
 
@@ -82,6 +83,8 @@ class Canvas:
 	#if event_code not in [19,23,25,26,27,28,29,30,49]:
         if event_code == lv.EVENT.PRESSING: # this is probably enough       
             x, y = InputManager.pointer_xy()
+            if not x and not y: # FIXME: some kind of bogosity?
+                return
             print("Pressing", x, y)
             x /= self.scale
             y /= self.scale
@@ -701,15 +704,42 @@ Useful for creating persistent games which evolve over time between plays.
             raise ValueError("TIC-80 color index must be 0–15")
 
     def mouse(self):
-        x = 10
-        y = 10
-        return (x, y, 1, 0, 0, 0, 0)
+        return (self.dragging["last_x"], self.dragging["last_y"], self.dragging["active"],
+                False, False, False, False)
 
-    def btnp(self, a):
+    def btnp(self, i, hold = -1, period = -1):
         return 0
 
-    def btn(self, a):
+    def btn(self, i):
         return 0
+
+class TicButton(Tic):
+    def btn(self, i):
+        # 1.. down, 2,3.. l/r, 4.. up
+
+        if not self.dragging["active"]:
+            return False
+        x = self.dragging["last_x"]
+        y = self.dragging["last_y"]
+
+        x = (x*2) // self.width
+        y = (y*4) // self.height
+        if y==3:
+            if x==0 and i==2:
+                return True
+            if x==1 and i==3:
+                return True
+        if y==2:
+            if x==0 and i==1:
+                return True
+            if x==1 and i==2:
+                return True
+        return False
+
+    def btnp(self, i, hold = -1, period = -1):
+        if self.last_dragging["active"]:
+            return False
+        return self.btn(i)
     
 class TicDemo(Tic):
     def BOOT(self):
@@ -787,10 +817,6 @@ class TicDemo(Tic):
         api.print(f"t={api.time()}", 5, 5, 15)
     
 import random
-
-class TicButton(Tic):
-    pass
-
 
 class Game(TicButton):
     def BOOT(self):
@@ -954,16 +980,19 @@ class Game(TicButton):
         self.tick += 1
 
         if self.btnp(2):
+            print("left")
             self.pill["x"] -= 1
             if self.collides(self.pill):
                 self.pill["x"] += 1
 
         if self.btnp(3):
+            print("right")
             self.pill["x"] += 1
             if self.collides(self.pill):
                 self.pill["x"] -= 1
 
         if self.btnp(4):
+            print("rot")
             old = self.pill["rot"]
             self.pill["rot"] = (old + 1) % 4
             if self.collides(self.pill):
@@ -971,6 +1000,7 @@ class Game(TicButton):
 
         speed = 6
         if self.btn(1):
+            print("down")
             speed = 5
 
         if self.tick % speed == 0:
@@ -1050,5 +1080,6 @@ class CanvasActivity(Activity):
     def tick(self, t):
         print("tick")
         self.c.TIC()
+        self.c.last_dragging = self.c.dragging
         self.c.canvas_update()
         print("tick done")
