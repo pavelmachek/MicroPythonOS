@@ -3,6 +3,7 @@ import mpos
 from mpos import Activity, MposKeyboard, InputManager
 
 import time
+import random
 
 # -----------------------------
 # Canvas (LVGL)
@@ -62,7 +63,7 @@ class Canvas:
         self.canvas.init_layer(self.layer)
 
         self.dragging = {"active": False, "last_x": 0, "last_y": 0}
-        self.last_dragging = {"active": False, "last_x": 0, "last_y": 0}
+        self.last_dragging = False
         self.canvas.add_flag(lv.obj.FLAG.CLICKABLE)
         self.canvas.add_event_cb(self.touch_cb, lv.EVENT.ALL, None)
 
@@ -708,10 +709,10 @@ Useful for creating persistent games which evolve over time between plays.
                 False, False, False, False)
 
     def btnp(self, i, hold = -1, period = -1):
-        return 0
+        return False
 
     def btn(self, i):
-        return 0
+        return False
 
 class TicButton(Tic):
     def btn(self, i):
@@ -732,12 +733,12 @@ class TicButton(Tic):
         if y==2:
             if x==0 and i==1:
                 return True
-            if x==1 and i==2:
+            if x==1 and i==4:
                 return True
         return False
 
     def btnp(self, i, hold = -1, period = -1):
-        if self.last_dragging["active"]:
+        if self.last_dragging:
             return False
         return self.btn(i)
     
@@ -816,8 +817,6 @@ class TicDemo(Tic):
 
         api.print(f"t={api.time()}", 5, 5, 15)
     
-import random
-
 class Game(TicButton):
     def BOOT(self):
         self.w = 8
@@ -1080,6 +1079,6 @@ class CanvasActivity(Activity):
     def tick(self, t):
         print("tick")
         self.c.TIC()
-        self.c.last_dragging = self.c.dragging
+        self.c.last_dragging = self.c.dragging["active"]
         self.c.canvas_update()
         print("tick done")
