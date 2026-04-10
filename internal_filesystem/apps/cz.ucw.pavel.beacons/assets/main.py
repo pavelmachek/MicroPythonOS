@@ -21,7 +21,7 @@ import ujson
 import requests
 
 # -----------------------------
-# WEATHER DATA MODEL
+#
 # -----------------------------
 
 class WData:
@@ -220,67 +220,10 @@ class Weather:
             self.accuracy = data.get("accuracy")
 
             self.summary = f"Lat: {self.lat}, Lon: {self.lon}, ±{self.accuracy}m"
+            print(loc)
         except Exception as e:
             print("Data error:", e)
             self.summary = "No location"
-
-        
-        #print("Have result:", body.decode())
-
-        # Parse JSON
-        data = ujson.loads(data)
-
-        # ---- Extract data ----
-        print("\n\n")
-
-        s = ""
-
-        print("---- ")
-        cw = data["current"]
-        self.now = Hourly()
-        self.now.init(cw, None)
-        prev = self.now
-        t = self.now.summarize()
-        s += t + "\n"
-        print(t)
-
-        self.hourly = []
-        d = data["hourly"]
-        times = d["time"]
-        #print(d)
-
-        print("---- ")
-        for i in range(len(times)):
-            h = Hourly()
-            h.init(d, i)
-            h.time = times[i]
-            self.hourly.append(h)
-            if not h.similar(prev):
-                t = h.summarize()
-                s += t + "\n"
-                print(t)
-                prev = h
-
-        self.daily = []
-        d = data["daily"]
-        times = d["time"]
-        #print(d)
-
-        print("---- ")
-        for i in range(len(times)):
-            h = Daily()
-            h.init(d, i)
-            h.time = times[i]
-            self.daily.append(h)
-            if i == 0:
-                prev = h
-            elif not h.similar(prev):
-                t = h.summarize()
-                s += t + "\n"
-                print(t)
-                prev = h
-                
-        self.summary = s
 
     def summarize_future():
         now = utime.time()
