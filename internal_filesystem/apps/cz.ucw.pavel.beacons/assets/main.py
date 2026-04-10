@@ -194,8 +194,12 @@ class Weather:
         print("BeaconDB fetch:", url)
         print("Payload:", payload)
 
+        headers = {
+            "User-Agent": "MyGeoClient/1.0 (Python requests; BeaconDB lookup)"
+        }
+
         try:
-            resp = requests.post(url, json=payload, timeout=10)
+            resp = requests.post(url, json=payload, headers=headers, timeout=10)
         except Exception as e:
             print("Request failed:", e)
             self.summary = "Download error"
