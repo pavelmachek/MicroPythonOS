@@ -46,6 +46,14 @@ def decode_ssid(ssid):
     except:
         return "<hidden>"
 
+def format_bssid(bssid):
+    if not bssid:
+        return "<unknown>"
+
+    try:
+        return ":".join("{:02x}".format(int(b)) for b in bssid)
+    except Exception:
+        return "<invalid>"
 
 def flags_to_security(wpa, rsn):
     """
@@ -82,13 +90,16 @@ def scan(wifi_props):
         ap = bus.get_object(NM_BUS, ap_path)
         ap_props = dbus.Interface(ap, "org.freedesktop.DBus.Properties")
 
-        print(ap_props)
+        #print(ap_props)
         AP_IFACE = "org.freedesktop.NetworkManager.AccessPoint"
         ssid = ap_props.Get(AP_IFACE, "Ssid")
         strength = int(ap_props.Get(AP_IFACE, "Strength"))
 
         #bssid = ap_props.Get(AP_IFACE, "Bssid")
-        bssid = b""
+        bssid_raw = ap_props.Get(AP_IFACE, "HwAddress")
+        bssid = bssid_raw # format_bssid(bssid_raw)
+
+        #bssid = b""
         freq = ap_props.Get(AP_IFACE, "Frequency")
         last_seen = ap_props.Get(AP_IFACE, "LastSeen")
         mode = ap_props.Get(AP_IFACE, "Mode")
@@ -101,7 +112,7 @@ def scan(wifi_props):
 
         results.append({
             "ssid": name,
-            "bssid": ":".join(["%02x" % b for b in bytes(bssid)]),
+            "bssid": bssid,
             "strength": int(strength),
             "freq": int(freq),
             "last_seen": int(last_seen),
@@ -124,8 +135,9 @@ def print_aps(aps):
     for ap in aps:
         print(
             f"{ap['ssid']:<25} "
-            f"{ap['strength']:>3}%  "
-            f"{ap['freq']:>4}MHz  "
+            f"{ap['strength']:>3}% "
+            f"{ap['freq']:>4}MHz "
+            f"{ap['bssid']} "
             f"{ap['security']:<15}  "
             f"last_seen={ap['last_seen']}"
         )
