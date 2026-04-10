@@ -145,11 +145,15 @@ class Weather:
         self.summary = "(no weather)"
 
     def fetch(self):
+        print()
+        print()
+
+        # GSM,230,1,22,932,,17.2540622,49.0349105,1704,32,1,1459086249,1459097316,
 
         self.mcc = 230        # country code
         self.mnc = 1          # operator
-        self.lac = 12345
-        self.cid = 67890123
+        self.lac = 22
+        self.cid = 932
         self.cell_signal = -70
 
         self.wifi_aps = [
@@ -165,10 +169,11 @@ class Weather:
         path = "/v1/geolocate"
         url = "https://" + host + path
 
+        # Radiotype can be also lte
         payload = {
             "cellTowers": [
                 {
-                    "radioType": "lte",
+                    "radioType": "gsm",
                     "mobileCountryCode": self.mcc,
                     "mobileNetworkCode": self.mnc,
                     "locationAreaCode": self.lac,
