@@ -35,15 +35,13 @@ class Weather:
 
         self.mcc = 230        # country code
         self.mnc = 1          # operator
+        self.type = "gsm"     # or "lte"
         self.lac = 22
         self.cid = 932
         self.cell_signal = -70
 
         self.wifi_aps = [
-            {"mac": "f0:9f:c2:11:22:33", "rssi": -42},
-            {"mac": "a4:5e:60:ab:cd:ef", "rssi": -55},
-            {"mac": "3c:7c:3f:98:76:54", "rssi": -61},
-            {"mac": "18:fe:34:aa:bb:cc", "rssi": -70},
+            {"mac": "11:22:33:44:55:66", "rssi": -1 },
         ]
 
         self.summary = "...locating..."
@@ -56,7 +54,7 @@ class Weather:
         payload = {
             "cellTowers": [
                 {
-                    "radioType": "gsm",
+                    "radioType": self.type,
                     "mobileCountryCode": self.mcc,
                     "mobileNetworkCode": self.mnc,
                     "locationAreaCode": self.lac,
