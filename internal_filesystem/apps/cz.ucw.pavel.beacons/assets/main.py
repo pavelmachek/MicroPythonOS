@@ -106,8 +106,9 @@ class Weather:
             self.lon = loc["lng"]
             self.accuracy = data.get("accuracy")
 
-            self.summary = f"Lat: {self.lat}, Lon: {self.lon}, ±{self.accuracy}m"
-            print(loc)
+            self.summary = f"Lat: {self.lat},\nLon: {self.lon},\n±{self.accuracy}m"
+            print(data, "\n\n")
+
         except Exception as e:
             print("Data error:", e)
             self.summary = "No location"
