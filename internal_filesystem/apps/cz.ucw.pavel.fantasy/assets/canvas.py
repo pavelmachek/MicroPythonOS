@@ -1077,8 +1077,9 @@ class CanvasActivity(Activity):
             self.timer = None
             
     def tick(self, t):
-        print("tick")
+        t1 = time.time()
+        print("tick...")
         self.c.TIC()
         self.c.last_dragging = self.c.dragging["active"]
         self.c.canvas_update()
-        print("tick done")
+        print("...done %.3f" % (time.time() - t1))
