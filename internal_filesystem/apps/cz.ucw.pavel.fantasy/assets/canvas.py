@@ -833,7 +833,8 @@ class GamePuyo(TicButton):
         self.prev_pair_cells = []
 
         self.tick = 0
-        self.drop_delay = 30
+        self.drop_delay = 10
+        self.cls(1)
 
         print("init")
         # initial full draw (once)
@@ -939,13 +940,13 @@ class GamePuyo(TicButton):
 
         moved = False
 
-        if self.btnp(0) and self.can_move(-1,0):
+        if self.btnp(2) and self.can_move(-1,0):
             self.pair["x"] -= 1
             moved = True
-        if self.btnp(1) and self.can_move(1,0):
+        if self.btnp(3) and self.can_move(1,0):
             self.pair["x"] += 1
             moved = True
-        if self.btnp(2) and self.can_move(0,0,self.pair["rot"]+1):
+        if self.btnp(4) and self.can_move(0,0,self.pair["rot"]+1):
             self.pair["rot"] += 1
             moved = True
 
