@@ -378,6 +378,7 @@ Useful for creating persistent games which evolve over time between plays.
                 y0 += sy
 
     def rect(self, x, y, w, h, color):
+        color = self.tc(color)
         for j in range(y, y + h):
             for i in range(x, x + w):
                 self.pix(i, j, color)
@@ -816,8 +817,198 @@ class TicDemo(Tic):
                 3)
 
         api.print(f"t={api.time()}", 5, 5, 15)
+
+class GamePuyo(TicButton):
+    GW = 6
+    GH = 12
+    CELL = 10
+
+    COLORS = [2, 3, 4, 5]
+
+    def BOOT(self):
+        self.grid = [[0]*self.GW for _ in range(self.GH)]
+        self.dirty_cells = set()
+
+        self.spawn_pair()
+        self.prev_pair_cells = []
+
+        self.tick = 0
+        self.drop_delay = 30
+
+        print("init")
+        # initial full draw (once)
+        for y in range(self.GH):
+            for x in range(self.GW):
+                print(x, y)
+                self.dirty_cells.add((x, y))
+        print("init ok")
+
+    # ---------- GAME LOGIC ----------
+
+    def spawn_pair(self):
+        import random
+        self.pair = {
+            "x": self.GW // 2,
+            "y": 0,
+            "rot": 0,
+            "colors": [random.choice(self.COLORS), random.choice(self.COLORS)]
+        }
+
+    def get_pair_cells(self):
+        x, y = self.pair["x"], self.pair["y"]
+        r = self.pair["rot"] % 4
+
+        if r == 0: return [(x,y),(x,y-1)]
+        if r == 1: return [(x,y),(x+1,y)]
+        if r == 2: return [(x,y),(x,y+1)]
+        if r == 3: return [(x,y),(x-1,y)]
+
+    def can_move(self, dx, dy, rot=None):
+        old_rot = self.pair["rot"]
+        if rot is not None:
+            self.pair["rot"] = rot
+
+        for (x,y) in self.get_pair_cells():
+            nx, ny = x+dx, y+dy
+            if nx < 0 or nx >= self.GW or ny >= self.GH:
+                self.pair["rot"] = old_rot
+                return False
+            if ny >= 0 and self.grid[ny][nx]:
+                self.pair["rot"] = old_rot
+                return False
+
+        self.pair["rot"] = old_rot
+        return True
+
+    def lock_pair(self):
+        for i,(x,y) in enumerate(self.get_pair_cells()):
+            if y >= 0:
+                self.grid[y][x] = self.pair["colors"][i]
+                self.dirty_cells.add((x,y))
+
+        self.resolve()
+        self.spawn_pair()
+        self.prev_pair_cells = []
+
+    # ---------- MATCH / GRAVITY ----------
+
+    def resolve(self):
+        visited = [[False]*self.GW for _ in range(self.GH)]
+        to_clear = []
+
+        def flood(x,y,color,group):
+            if x<0 or x>=self.GW or y<0 or y>=self.GH:
+                return
+            if visited[y][x] or self.grid[y][x] != color:
+                return
+            visited[y][x] = True
+            group.append((x,y))
+            flood(x+1,y,color,group)
+            flood(x-1,y,color,group)
+            flood(x,y+1,color,group)
+            flood(x,y-1,color,group)
+
+        for y in range(self.GH):
+            for x in range(self.GW):
+                if self.grid[y][x] and not visited[y][x]:
+                    group = []
+                    flood(x,y,self.grid[y][x],group)
+                    if len(group) >= 4:
+                        to_clear.extend(group)
+
+        if to_clear:
+            for (x,y) in to_clear:
+                self.grid[y][x] = 0
+                self.dirty_cells.add((x,y))
+            self.apply_gravity()
+            self.resolve()
+
+    def apply_gravity(self):
+        for x in range(self.GW):
+            stack = [self.grid[y][x] for y in range(self.GH) if self.grid[y][x]]
+            for y in range(self.GH-1, -1, -1):
+                new_val = stack.pop() if stack else 0
+                if self.grid[y][x] != new_val:
+                    self.grid[y][x] = new_val
+                    self.dirty_cells.add((x,y))
+
+    # ---------- UPDATE ----------
+
+    def update(self):
+        self.tick += 1
+
+        moved = False
+
+        if self.btnp(0) and self.can_move(-1,0):
+            self.pair["x"] -= 1
+            moved = True
+        if self.btnp(1) and self.can_move(1,0):
+            self.pair["x"] += 1
+            moved = True
+        if self.btnp(2) and self.can_move(0,0,self.pair["rot"]+1):
+            self.pair["rot"] += 1
+            moved = True
+
+        if self.tick % self.drop_delay == 0:
+            if self.can_move(0,1):
+                self.pair["y"] += 1
+                moved = True
+            else:
+                self.lock_pair()
+                return
+
+        if moved:
+            self.mark_pair_dirty()
+
+    def mark_pair_dirty(self):
+        new_cells = self.get_pair_cells()
+
+        # mark old + new cells dirty
+        for c in self.prev_pair_cells:
+            if c[1] >= 0:
+                self.dirty_cells.add(c)
+        for c in new_cells:
+            if c[1] >= 0:
+                self.dirty_cells.add(c)
+
+        self.prev_pair_cells = new_cells
+
+    # ---------- DRAW ----------
+
+    def draw_cell(self, x, y):
+        px = x * self.CELL
+        py = y * self.CELL
+
+        color = self.grid[y][x]
+
+        # check if falling pair overlaps
+        for i,(pxy,pyy) in enumerate(self.get_pair_cells()):
+            if (pxy,pyy) == (x,y):
+                color = self.pair["colors"][i]
+
+        # draw background (clear cell)
+        self.rect(px, py, self.CELL, self.CELL, 0)
+
+        if color:
+            self.rect(px+1, py+1, self.CELL-2, self.CELL-2, color)
+
+    def draw(self):
+        if not self.dirty_cells:
+            return
+
+        for (x,y) in self.dirty_cells:
+            if 0 <= x < self.GW and 0 <= y < self.GH:
+                self.draw_cell(x,y)
+
+        self.dirty_cells.clear()
+
+    # ---------- MAIN ----------
+
+    def TIC(self):
+        self.update()
+        self.draw()
     
-class Game(TicButton):
+class GameVirus(TicButton):
     def BOOT(self):
         self.w = 8
         self.h = 16
@@ -1012,13 +1203,13 @@ class Game(TicButton):
     # Draw
     # -------------------------
     def draw(self):
-        self.cls(0)
+        #self.cls(0)
 
         # grid
         for y in range(self.h):
             for x in range(self.w):
                 c = self.grid[y][x]
-                if c != 0:
+                if True or c != 0:
                     self.rect(x*self.cell, y*self.cell, self.cell, self.cell, c)
 
                     # draw virus marker
@@ -1049,6 +1240,7 @@ class CanvasActivity(Activity):
         self.pages = 3
 
     def onCreate(self):
+        print("\n\n\n\nFantasy Phone hacks")
         self.scr = lv.obj()
         scr = self.scr
 
@@ -1062,8 +1254,11 @@ class CanvasActivity(Activity):
 
         # Canvas
         self.canvas = lv.canvas(self.scr)
-        
-        self.c = Game(self.scr, self.canvas)
+
+        if False:
+            self.c = GameVirus(self.scr, self.canvas)
+        else:
+            self.c = GamePuyo(self.scr, self.canvas)
         
         # Build buttons
         self.setContentView(self.c.scr)
