@@ -833,7 +833,7 @@ class GamePuyo(TicButton):
         self.prev_pair_cells = []
 
         self.tick = 0
-        self.drop_delay = 10
+        self.drop_delay = 5
         self.cls(1)
 
         print("init")
