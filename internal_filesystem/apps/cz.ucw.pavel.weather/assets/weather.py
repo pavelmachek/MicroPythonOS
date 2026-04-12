@@ -1,3 +1,5 @@
+import ujson
+
 # -----------------------------
 # WEATHER DATA MODEL
 # -----------------------------
@@ -140,7 +142,7 @@ class Weather:
         ).format(self.lat, self.lon)
 
         print("Weather fetch: ", path)
-        data = DownloadManager.download_url("https://"+host+path)
+        data = self.download_url("https://"+host+path)
         if not data:
             self.summary = "Download error"
             return
