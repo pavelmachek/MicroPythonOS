@@ -35,7 +35,7 @@ class Weather:
 
         self.mcc = 230        # country code
         self.mnc = 1          # operator
-        self.type = "gsm"     # or "lte"
+        self.type = "gsm"     # or "lte", The type of radio network. One of gsm, wcdma, or lte
         self.lac = 22
         self.cid = 932
         self.cell_signal = -70
@@ -44,13 +44,19 @@ class Weather:
             {"mac": "11:22:33:44:55:66", "rssi": -1 },
         ]
 
+        """
+              "macAddress": "00:25:9c:cf:1c:ac",
+      "signalStrength": -43,
+      "channel": 11,
+      "ssid": "MyNetwork"
+"""
+
         self.summary = "...locating..."
 
         host = "api.beacondb.net"
-        path = "/v1/geolocate"
+        path = "/v1/geolocate?key=micropythonos_beacons-0.1"
         url = "https://" + host + path
 
-        # Radiotype can be also lte
         payload = {
             "cellTowers": [
                 {
@@ -69,14 +75,19 @@ class Weather:
                 }
                 for ap in self.wifi_aps
             ],
-            "considerIp": False
+            "considerIp": False,
+            "fallbacks": {
+                "lacf": True,
+                "ipf": True
+            }
         }
+        # Fallbacks don't seem to work, considerIp seems to work ok.
 
         print("BeaconDB fetch:", url)
         print("Payload:", payload)
 
         headers = {
-            "User-Agent": "MyGeoClient/1.0 (Python requests; BeaconDB lookup)"
+            "User-Agent": "MicroPythonOS/beacons-0.1"
         }
 
         try:
@@ -88,6 +99,7 @@ class Weather:
 
         if resp.status_code != 200:
             print("HTTP error:", resp.status_code, resp.text)
+            print("\n*** error ***\n\n\n")
             self.summary = "HTTP error"
             return
 
