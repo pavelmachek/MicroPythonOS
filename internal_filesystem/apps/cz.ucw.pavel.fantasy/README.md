@@ -9,7 +9,7 @@ that would be comfortably small, perhaps around 60 grams.
 But... I don't have access to such hardware now. But still I'd like to
 write software for it... hence this.
 
-* Very basics
+* Basics
 
 touchscreen
 blit image
@@ -18,12 +18,23 @@ get text input
 
 pcm recording/playback
 
+battery status
+
+some kind of internet access? http access?
+
 * Phone specific
+
+GPS
+
+cell 
 
 vibration
 LEDs
-sensors
+sensors -- accelerometer, magnetometer, gyroscope, light sensor, proximity sensor
 camera
+wifi, bluetooth, nfc
+
+temperature
 
 * Android specific
 
