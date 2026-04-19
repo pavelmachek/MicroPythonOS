@@ -2,6 +2,10 @@ from mpos import Activity
 
 """
 Simple cellular-network example
+
+This should be really FantasTic Fantasy phone, or something.
+
+Of course, watch version should be Tic-Tac.
 """
 
 import time

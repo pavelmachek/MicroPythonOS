@@ -2,6 +2,14 @@ import lvgl as lv
 import mpos
 from mpos import Activity, MposKeyboard, InputManager
 
+"""
+
+Give me code in Python, for tic-80, using its documented
+interfaces. Difference will be that code should be in separate class,
+and tic interfaces should be called as self.
+
+"""
+
 import time
 import random
 
@@ -1230,6 +1238,179 @@ class GameVirus(TicButton):
         self.update()
         self.draw()
 
+# Self tests class
+
+class SelfTests(Tic):
+    def BOOT(self):
+        self.menu_stack = [self.main_menu()]
+        self.cursor = 0
+
+        # Draw test state
+        self.brush_size = 2
+        self.color = 12
+
+        # Fake GPS data
+        self.gga_data = [
+            "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47",
+            "$GPGGA,123520,4807.040,N,01131.002,E,1,08,0.9,545.5,M,46.9,M,,*48",
+            "$GPGGA,123521,4807.042,N,01131.004,E,1,08,0.9,545.6,M,46.9,M,,*49",
+        ]
+
+    # ---------------- MENU SYSTEM ----------------
+
+    def main_menu(self):
+        return {
+            "title": "SELF TESTS",
+            "items": [
+                ("Draw Test", self.draw_menu),
+                ("GPS Test", self.gps_test),
+                ("Clock Test", self.clock_test),
+            ]
+        }
+
+    def draw_menu(self):
+        return {
+            "title": "DRAW SETTINGS",
+            "items": [
+                ("Brush +", self.increase_brush),
+                ("Brush -", self.decrease_brush),
+                ("Color +", self.next_color),
+                ("Start Drawing", self.draw_test),
+            ]
+        }
+
+    def push_menu(self, menu):
+        if callable(menu):
+            menu = menu()
+        self.menu_stack.append(menu)
+        self.cursor = 0
+
+    def pop_menu(self):
+        if len(self.menu_stack) > 1:
+            self.menu_stack.pop()
+            self.cursor = 0
+
+    def current_menu(self):
+        return self.menu_stack[-1]
+
+    def update_menu(self):
+        if self.btnp(0):  # up
+            self.cursor = (self.cursor - 1) % len(self.current_menu()["items"])
+        if self.btnp(1):  # down
+            self.cursor = (self.cursor + 1) % len(self.current_menu()["items"])
+        if self.btnp(4):  # A button
+            _, action = self.current_menu()["items"][self.cursor]
+            self.push_menu(action)
+        if self.btnp(5):  # B button
+            self.pop_menu()
+
+    def draw_menu_screen(self):
+        self.cls(0)
+        menu = self.current_menu()
+
+        self.print(menu["title"], 80, 10, 12)
+
+        for i, (name, _) in enumerate(menu["items"]):
+            color = 15 if i == self.cursor else 6
+            self.print(name, 60, 30 + i * 10, color)
+
+    # ---------------- DRAW TEST ----------------
+
+    def increase_brush(self):
+        self.brush_size += 1
+
+    def decrease_brush(self):
+        self.brush_size = max(1, self.brush_size - 1)
+
+    def next_color(self):
+        self.color = (self.color + 1) % 16
+
+    def draw_test(self):
+        while True:
+            self.cls(0)
+
+            mx, my, left, _, _ = self.mouse()
+
+            if left:
+                self.circ(mx, my, self.brush_size, self.color)
+
+            self.print(f"Brush: {self.brush_size}", 5, 5, 12)
+            self.print(f"Color: {self.color}", 5, 15, 12)
+            self.print("B to exit", 5, 25, 12)
+
+            if self.btnp(5):
+                break
+
+            self.flip()
+
+        self.pop_menu()
+
+    # ---------------- GPS TEST ----------------
+
+    def gps_test(self):
+        while True:
+            self.cls(0)
+
+            self.print("GPS GGA DATA", 70, 10, 12)
+
+            for i, line in enumerate(self.gga_data):
+                self.print(line, 5, 30 + i * 10, 6)
+
+            self.print("B to exit", 5, 120, 12)
+
+            if self.btnp(5):
+                break
+
+            self.flip()
+
+        self.pop_menu()
+
+    # ---------------- CLOCK TEST ----------------
+
+    def clock_test(self):
+        import math
+
+        while True:
+            self.cls(0)
+
+            t = self.time() // 1000
+            sec = t % 60
+            minute = (t // 60) % 60
+            hour = (t // 3600) % 24
+
+            # Digital
+            self.print(f"{hour:02}:{minute:02}:{sec:02}", 90, 10, 12)
+
+            # Analog
+            cx, cy = 120, 68
+            self.circ(cx, cy, 30, 15)
+
+            # Hands
+            def hand(angle, length, color):
+                x = cx + math.sin(angle) * length
+                y = cy - math.cos(angle) * length
+                self.line(cx, cy, int(x), int(y), color)
+
+            hand(sec * math.pi / 30, 25, 12)
+            hand(minute * math.pi / 30, 20, 11)
+            hand((hour % 12) * math.pi / 6, 15, 10)
+
+            self.print("B to exit", 5, 120, 12)
+
+            if self.btnp(5):
+                break
+
+            self.flip()
+
+        self.pop_menu()
+
+    # ---------------- MAIN LOOP ----------------
+
+    def TIC(self):
+        self.update_menu()
+        self.draw_menu_screen()
+
+
 # ----------------------------
 # App logic
 # ----------------------------
@@ -1256,7 +1437,9 @@ class CanvasActivity(Activity):
         # Canvas
         self.canvas = lv.canvas(self.scr)
 
-        if False:
+        if True:
+            self.c = SelfTests(self.scr, self.canvas)
+        elif False:
             self.c = GameVirus(self.scr, self.canvas)
         else:
             self.c = GamePuyo(self.scr, self.canvas)
