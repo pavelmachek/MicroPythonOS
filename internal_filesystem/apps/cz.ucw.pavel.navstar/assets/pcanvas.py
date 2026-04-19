@@ -191,11 +191,11 @@ class Canvas:
 class TicCanvas(Canvas):
     # Matching the TIC-80 interface
 
-    def cls(self, color=lv.color_black()):
+    def cls(self, color=lv.color_white()):
         """ Clear the screen (canvas) with a color. """
         self.canvas.fill_bg(color, lv.OPA.COVER)
 
-    def circ(self, x, y, r, color=lv.color_black()):
+    def circb(self, x, y, r, color):
         """ Draw an outline of a circle at (x, y) with radius r. """
         self._begin()
 
@@ -213,7 +213,7 @@ class TicCanvas(Canvas):
 
         self._end()
 
-    def circb(self, x, y, r, color=lv.color_black()):
+    def circ(self, x, y, r, color):
         """ Draw a filled circle at (x, y) with radius r. """
         self._begin()
 
@@ -232,7 +232,7 @@ class TicCanvas(Canvas):
 
         self._end()
 
-    def rect(self, x, y, sx, sy, color=lv.color_black()):
+    def rectb(self, x, y, sx, sy, color):
         """ Draw an outline of a rectangle. """
         self._begin()
 
@@ -249,7 +249,7 @@ class TicCanvas(Canvas):
 
         self._end()
 
-    def rectb(self, x, y, sx, sy, color=lv.color_black()):
+    def rect(self, x, y, sx, sy, color):
         """ Draw a filled rectangle. """
         self._begin()
 
@@ -267,7 +267,7 @@ class TicCanvas(Canvas):
 
         self._end()
 
-    def line(self, x1, y1, x2, y2, color=lv.color_black()):
+    def line(self, x1, y1, x2, y2, color):
         """ Draw a line from (x1, y1) to (x2, y2). """
         self._begin()
 
@@ -279,8 +279,11 @@ class TicCanvas(Canvas):
 
         self._end()
 
-    def print(self, text, x=0, y=0, color=lv.color_black(), font=lv.font_montserrat_24):
-        """ Draw text on the screen at position (x, y). """
+    def print(self, text, x=0, y=0, color=lv.color_black(), font=lv.font_montserrat_24, scale=1, smallfont=False):
+        """ Draw text on the screen at position (x, y).
+
+        print text [x=0 y=0] [color=12] [fixed=false] [scale=1] [smallfont=false]
+        """
         self._begin()
 
         dsc = lv.draw_label_dsc_t()
@@ -299,8 +302,6 @@ class TicCanvas(Canvas):
 
         self._end()
 
-
-    
 # ----------------------------
 # App logic
 # ----------------------------
