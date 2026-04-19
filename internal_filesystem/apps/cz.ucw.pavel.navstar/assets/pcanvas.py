@@ -188,6 +188,119 @@ class Canvas:
         # But then you must ensure the app calls update() once per frame.
         pass
 
+class TicCanvas(Canvas):
+    # Matching the TIC-80 interface
+
+    def cls(self, color=lv.color_black()):
+        """ Clear the screen (canvas) with a color. """
+        self.canvas.fill_bg(color, lv.OPA.COVER)
+
+    def circ(self, x, y, r, color=lv.color_black()):
+        """ Draw an outline of a circle at (x, y) with radius r. """
+        self._begin()
+
+        a = lv.area_t()
+        a.x1 = int(x - r)
+        a.y1 = int(y - r)
+        a.x2 = int(x + r)
+        a.y2 = int(y + r)
+
+        dsc = self._rect_dsc
+        dsc.radius = lv.RADIUS_CIRCLE
+        dsc.border_color = color
+
+        lv.draw_rect(self.layer, dsc, a)
+
+        self._end()
+
+    def circb(self, x, y, r, color=lv.color_black()):
+        """ Draw a filled circle at (x, y) with radius r. """
+        self._begin()
+
+        a = lv.area_t()
+        a.x1 = int(x - r)
+        a.y1 = int(y - r)
+        a.x2 = int(x + r)
+        a.y2 = int(y + r)
+
+        dsc = self._rect_dsc
+        dsc.radius = lv.RADIUS_CIRCLE
+        dsc.border_color = color
+        dsc.bg_color = color  # Fill the circle with the same color
+
+        lv.draw_rect(self.layer, dsc, a)
+
+        self._end()
+
+    def rect(self, x, y, sx, sy, color=lv.color_black()):
+        """ Draw an outline of a rectangle. """
+        self._begin()
+
+        a = lv.area_t()
+        a.x1 = x
+        a.y1 = y
+        a.x2 = x + sx
+        a.y2 = y + sy
+
+        dsc = self._rect_dsc
+        dsc.border_color = color
+
+        lv.draw_rect(self.layer, dsc, a)
+
+        self._end()
+
+    def rectb(self, x, y, sx, sy, color=lv.color_black()):
+        """ Draw a filled rectangle. """
+        self._begin()
+
+        a = lv.area_t()
+        a.x1 = x
+        a.y1 = y
+        a.x2 = x + sx
+        a.y2 = y + sy
+
+        dsc = self._fill_dsc
+        dsc.border_color = color
+        dsc.bg_color = color  # Fill the rectangle with the same color
+
+        lv.draw_rect(self.layer, dsc, a)
+
+        self._end()
+
+    def line(self, x1, y1, x2, y2, color=lv.color_black()):
+        """ Draw a line from (x1, y1) to (x2, y2). """
+        self._begin()
+
+        dsc = self._line_dsc
+        dsc.p1 = lv.point_precise_t(x=int(x1), y=int(y1))
+        dsc.p2 = lv.point_precise_t(x=int(x2), y=int(y2))
+
+        lv.draw_line(self.layer, dsc)
+
+        self._end()
+
+    def print(self, text, x=0, y=0, color=lv.color_black(), font=lv.font_montserrat_24):
+        """ Draw text on the screen at position (x, y). """
+        self._begin()
+
+        dsc = lv.draw_label_dsc_t()
+        lv.draw_label_dsc_t.init(dsc)
+        dsc.text = str(text)
+        dsc.font = font
+        dsc.color = color
+
+        area = lv.area_t()
+        area.x1 = x
+        area.y1 = y
+        area.x2 = x + self.W
+        area.y2 = y + self.H
+
+        lv.draw_label(self.layer, dsc, area)
+
+        self._end()
+
+
+    
 # ----------------------------
 # App logic
 # ----------------------------
