@@ -72,7 +72,7 @@ class Canvas:
         self._fill_dsc.border_width = 1
 
         # Clear once
-        self.clear()
+        self.cls()
 
     # ----------------------------
     # Layer lifecycle
@@ -86,6 +86,14 @@ class Canvas:
         # Commit drawing
         self.canvas.finish_layer(self.layer)
 
+    def update(self):
+        # Nothing needed; drawing is committed per primitive.
+        # If you want, you can change the implementation so that:
+        # - draw ops happen between clear() and update()
+        # But then you must ensure the app calls update() once per frame.
+        pass
+
+def OldCanvas(Canvas):
     # ----------------------------
     # Public API: drawing
     # ----------------------------
@@ -181,13 +189,6 @@ class Canvas:
 
         self._end()
 
-    def update(self):
-        # Nothing needed; drawing is committed per primitive.
-        # If you want, you can change the implementation so that:
-        # - draw ops happen between clear() and update()
-        # But then you must ensure the app calls update() once per frame.
-        pass
-
 class TicCanvas(Canvas):
     # Matching the TIC-80 interface
 
@@ -272,8 +273,12 @@ class TicCanvas(Canvas):
         self._begin()
 
         dsc = self._line_dsc
-        dsc.p1 = lv.point_precise_t(x=int(x1), y=int(y1))
-        dsc.p2 = lv.point_precise_t(x=int(x2), y=int(y2))
+        dsc.p1 = lv.point_precise_t()
+        dsc.p2 = lv.point_precise_t()
+        dsc.p1.x = int(x1)
+        dsc.p1.y = int(y1)
+        dsc.p2.x = int(x2)
+        dsc.p2.y = int(y2)
 
         lv.draw_line(self.layer, dsc)
 
@@ -302,6 +307,8 @@ class TicCanvas(Canvas):
 
         self._end()
 
+    def text(self, x, y, text):
+        self.print(text, x, y)
 # ----------------------------
 # App logic
 # ----------------------------
@@ -334,7 +341,7 @@ class PagedCanvas(Activity):
         self.canvas.align(lv.ALIGN.TOP_LEFT, 0, 0)
         self.canvas.set_style_border_width(0, 0)
         
-        self.c = Canvas(self.scr, self.canvas)
+        self.c = TicCanvas(self.scr, self.canvas)
         
         # Build buttons
         self.build_buttons()
@@ -406,7 +413,7 @@ class PagedCanvas(Activity):
 
     def draw_page_example(self):
         ui = self.c
-        ui.clear()
+        ui.cls()
 
         st = 28
         y = 2*st

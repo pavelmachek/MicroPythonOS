@@ -618,7 +618,7 @@ class Main(PagedCanvas):
         gps = self.gps
         ui = self.c
 
-        ui.clear()
+        ui.cls()
 
         st = 28
         y = 1*st
@@ -673,7 +673,7 @@ class Main(PagedCanvas):
         gps = self.gps
         ui = self.c
 
-        ui.clear()
+        ui.cls()
         ui.text(0, 22, "Sky view")
 
         # Sky view circle
@@ -681,11 +681,11 @@ class Main(PagedCanvas):
         cy = 110
         R = 90
 
-        ui.circle(cx, cy, R)
-        ui.circle(cx, cy, int(R * 0.66))
-        ui.circle(cx, cy, int(R * 0.33))
-        ui.line(cx - R, cy, cx + R, cy)
-        ui.line(cx, cy - R, cx, cy + R)
+        ui.circb(cx, cy, R, lv.color_black())
+        ui.circb(cx, cy, int(R * 0.66), lv.color_black())
+        ui.circb(cx, cy, int(R * 0.33), lv.color_black())
+        ui.line(cx - R, cy, cx + R, cy, lv.color_black())
+        ui.line(cx, cy - R, cx, cy + R, lv.color_black())
 
         # Plot satellites
         # NMEA: elevation 0..90, azimuth 0..359
@@ -714,7 +714,7 @@ class Main(PagedCanvas):
             else:
                 rr = 1 + int(clamp(snr-10, 0, 15)) / 3
 
-            ui.fill_circle(x, y, rr)
+            ui.circ(x, y, rr, lv.color_black())
             count += 1
 
         ui.text(0, cy + R - 35, "SV: %d" % count)
@@ -725,7 +725,7 @@ class Main(PagedCanvas):
         ui = self.c
         st = 28
 
-        ui.clear()
+        ui.cls()
 
         draw_nav_screen(ui, self.gps, self.track.points, self.nav.lat, self.nav.lon)
         
@@ -764,7 +764,7 @@ class Main(PagedCanvas):
         gps = self.gps
         ui = self.c
 
-        ui.clear()
+        ui.cls()
 
         st = 28
         y = st
@@ -1196,7 +1196,7 @@ def kmh_to_human(kmh):
 
 def draw_arrow(ui, x0, y0, x1, y1, head_len=14, head_ang_deg=28):
     # main shaft
-    ui.line(x0, y0, x1, y1)
+    ui.line(x0, y0, x1, y1, lv.color_black())
 
     # arrow head
     ang = math.atan2(y1 - y0, x1 - x0)
@@ -1208,8 +1208,8 @@ def draw_arrow(ui, x0, y0, x1, y1, head_len=14, head_ang_deg=28):
     xh2 = int(x1 - head_len * math.cos(ang + ha))
     yh2 = int(y1 - head_len * math.sin(ang + ha))
 
-    ui.line(x1, y1, xh1, yh1)
-    ui.line(x1, y1, xh2, yh2)
+    ui.line(x1, y1, xh1, yh1, lv.color_black())
+    ui.line(x1, y1, xh2, yh2, lv.color_black())
 
 
 def polar_to_xy(cx, cy, r, angle_deg):
@@ -1246,9 +1246,9 @@ def draw_nav_screen(ui, gps, trail,
     R = 90
 
     # --- Draw compass rose
-    ui.circle(cx, cy, R)
-    ui.line(cx - R, cy, cx + R, cy)
-    ui.line(cx, cy - R, cx, cy + R)
+    ui.circb(cx, cy, R, lv.color_black())
+    ui.line(cx - R, cy, cx + R, cy, lv.color_black())
+    ui.line(cx, cy - R, cx, cy + R, lv.color_black())
 
     # --- Require a fix
     if not getattr(gps, "fix_ok", True):
@@ -1344,11 +1344,11 @@ def draw_nav_screen(ui, gps, trail,
             sy = clamp(sy, cy - R + 2, cy + R - 2)
 
             # draw point (small cross)
-            ui.line(sx - 1, sy, sx + 1, sy)
-            ui.line(sx, sy - 1, sx, sy + 1)
+            ui.line(sx - 1, sy, sx + 1, sy, lv.color_black())
+            ui.line(sx, sy - 1, sx, sy + 1, lv.color_black())
 
             if prev_xy is not None:
-                ui.line(prev_xy[0], prev_xy[1], sx, sy)
+                ui.line(prev_xy[0], prev_xy[1], sx, sy, lv.color_black())
 
             prev_xy = (sx, sy)
 
