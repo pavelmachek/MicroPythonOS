@@ -18,12 +18,30 @@ try:
 except ImportError:
     pass
 
+class Game(Activity):
+    def show_win(self, t):
+        popup = lv.obj(self.screen)
+        popup.set_size(lv.pct(100), lv.pct(100))
+        popup.center()
 
-class Main(Activity):
+        ta = lv.textarea(popup)
+        ta.set_width(lv.pct(100))
+        ta.set_text(t)
+        ta.set_one_line(True)
+        ta.align(lv.ALIGN.TOP_MID, 0, 2)
 
+        btn_ok = lv.button(popup)
+        btn_ok.align_to(ta, lv.ALIGN.OUT_BOTTOM_RIGHT, -30, 10)
+        lv.label(btn_ok).set_text("OK")
+
+        def close(e):
+            popup.delete()
+
+        btn_ok.add_event_cb(close, lv.EVENT.CLICKED, None)
+
+class Main(Game):
     COLS = 10
     ROWS = 10
-
     COLORS = [
         0xE74C3C,  # red
         0xF1C40F,  # yellow
@@ -44,7 +62,6 @@ class Main(Activity):
     # ---------------------------------------------------------------------
 
     def onCreate(self):
-
         self.screen = lv.obj()
         self.screen.remove_flag(lv.obj.FLAG.SCROLLABLE)
 
@@ -60,9 +77,12 @@ class Main(Activity):
         self.SCREEN_WIDTH = d.get_horizontal_resolution()
         self.SCREEN_HEIGHT = d.get_vertical_resolution()
 
+        colors = len(self.COLORS)
+
         # color buttons
-        btn_size = 45
         spacing = 5
+        btn_size = (self.SCREEN_WIDTH - spacing) // colors
+        btn_size -= spacing
 
         self.CELL = min(
             self.SCREEN_WIDTH // (self.COLS + 2),
@@ -122,7 +142,6 @@ class Main(Activity):
     # ---------------------------------------------------------------------
 
     def new_game(self):
-
         self.moves = 0
         self.lb_score.set_text("Moves\n0")
 
@@ -136,7 +155,6 @@ class Main(Activity):
     # ---------------------------------------------------------------------
 
     def pick_color(self, color):
-
         start_color = self.board[0][0]
 
         if start_color == color:
@@ -191,10 +209,8 @@ class Main(Activity):
     # ---------------------------------------------------------------------
 
     def win(self):
-
-        label = lv.label(self.screen)
-        label.set_text("Finished in %d moves!" % self.moves)
-        label.center()
+        self.show_win("Finished in %d moves!" % self.moves)
+        self.new_game()
 
     # ---------------------------------------------------------------------
 
