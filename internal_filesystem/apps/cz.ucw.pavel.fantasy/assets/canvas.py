@@ -8,6 +8,9 @@ Give me code in Python, for tic-80, using its documented
 interfaces. Difference will be that code should be in separate class,
 and tic interfaces should be called as self.
 
+Notice you'll need to use state machines, as TIC() is not supposed to block,
+and initialization should go to BOOT() function.
+
 """
 
 import time
@@ -1242,11 +1245,15 @@ class GameVirus(TicButton):
 
 class SelfTests(Tic):
     def BOOT(self):
+        self.state = "menu"
         self.menu_stack = [self.main_menu()]
         self.cursor = 0
 
-        # Draw test state
-        self.brush_size = 2
+        # Mouse state
+        self.prev_mouse = False
+
+        # Draw test
+        self.brush_size = 3
         self.color = 12
 
         # Fake GPS data
@@ -1256,15 +1263,15 @@ class SelfTests(Tic):
             "$GPGGA,123521,4807.042,N,01131.004,E,1,08,0.9,545.6,M,46.9,M,,*49",
         ]
 
-    # ---------------- MENU SYSTEM ----------------
+    # ---------------- MENU ----------------
 
     def main_menu(self):
         return {
             "title": "SELF TESTS",
             "items": [
-                ("Draw Test", self.draw_menu),
-                ("GPS Test", self.gps_test),
-                ("Clock Test", self.clock_test),
+                ("Draw Test", lambda: self.enter_menu(self.draw_menu())),
+                ("GPS Test", lambda: self.set_state("gps")),
+                ("Clock Test", lambda: self.set_state("clock")),
             ]
         }
 
@@ -1272,143 +1279,162 @@ class SelfTests(Tic):
         return {
             "title": "DRAW SETTINGS",
             "items": [
-                ("Brush +", self.increase_brush),
-                ("Brush -", self.decrease_brush),
+                ("Brush +", lambda: self.brush(1)),
+                ("Brush -", lambda: self.brush(-1)),
                 ("Color +", self.next_color),
-                ("Start Drawing", self.draw_test),
+                ("Start Drawing", lambda: self.set_state("draw")),
+                ("Back", self.pop_menu),
             ]
         }
 
-    def push_menu(self, menu):
-        if callable(menu):
-            menu = menu()
+    def enter_menu(self, menu):
         self.menu_stack.append(menu)
-        self.cursor = 0
 
     def pop_menu(self):
         if len(self.menu_stack) > 1:
             self.menu_stack.pop()
-            self.cursor = 0
 
     def current_menu(self):
         return self.menu_stack[-1]
 
-    def update_menu(self):
-        if self.btnp(0):  # up
-            self.cursor = (self.cursor - 1) % len(self.current_menu()["items"])
-        if self.btnp(1):  # down
-            self.cursor = (self.cursor + 1) % len(self.current_menu()["items"])
-        if self.btnp(4):  # A button
-            _, action = self.current_menu()["items"][self.cursor]
-            self.push_menu(action)
-        if self.btnp(5):  # B button
-            self.pop_menu()
+    def set_state(self, state):
+        self.state = state
 
-    def draw_menu_screen(self):
+    # ---------------- INPUT ----------------
+
+    def mouse_pressed(self):
+        mx, my, left, _, _, _, _= self.mouse()
+        pressed = left and not self.prev_mouse
+        self.prev_mouse = left
+        return pressed, mx, my, left
+
+    # ---------------- MENU RENDER ----------------
+
+    def update_menu(self):
+        pressed, mx, my, _ = self.mouse_pressed()
+
+        menu = self.current_menu()
+
+        y = 40
+        for name, action in menu["items"]:
+            if 60 <= mx <= 180 and y <= my <= y + 16:
+                if pressed:
+                    action()
+            y += 24  # spacing
+
+    def draw_menu(self):
         self.cls(0)
         menu = self.current_menu()
 
-        self.print(menu["title"], 80, 10, 12)
+        self.print(menu["title"], 84, 10, 12)
 
-        for i, (name, _) in enumerate(menu["items"]):
-            color = 15 if i == self.cursor else 6
-            self.print(name, 60, 30 + i * 10, color)
+        mx, my, left, _, _, _, _ = self.mouse()
+
+        y = 40
+        for name, _ in menu["items"]:
+            hover = 60 <= mx <= 180 and y <= my <= y + 16
+            color = 15 if hover else 6
+
+            self.rect(60, y, 120, 16, 1 if hover else 0)
+            self.print(name, 70, y + 4, color)
+
+            y += 24
 
     # ---------------- DRAW TEST ----------------
 
-    def increase_brush(self):
-        self.brush_size += 1
-
-    def decrease_brush(self):
-        self.brush_size = max(1, self.brush_size - 1)
+    def brush(self, delta):
+        self.brush_size = max(1, self.brush_size + delta)
 
     def next_color(self):
         self.color = (self.color + 1) % 16
 
-    def draw_test(self):
-        while True:
-            self.cls(0)
+    def update_draw(self):
+        mx, my, left, _, _, _, _ = self.mouse()
 
-            mx, my, left, _, _ = self.mouse()
+        if left:
+            self.circ(mx, my, self.brush_size, self.color)
 
-            if left:
-                self.circ(mx, my, self.brush_size, self.color)
+        pressed, mx, my, _ = self.mouse_pressed()
 
-            self.print(f"Brush: {self.brush_size}", 5, 5, 12)
-            self.print(f"Color: {self.color}", 5, 15, 12)
-            self.print("B to exit", 5, 25, 12)
+        # back button (top-left)
+        if pressed and mx < 40 and my < 20:
+            self.set_state("menu")
 
-            if self.btnp(5):
-                break
-
-            self.flip()
-
-        self.pop_menu()
+    def draw_draw(self):
+        self.print("DRAW MODE", 5, 5, 12)
+        self.print(f"Brush: {self.brush_size}", 5, 15, 12)
+        self.print(f"Color: {self.color}", 5, 25, 12)
+        self.print("BACK", 5, 35, 8)
 
     # ---------------- GPS TEST ----------------
 
-    def gps_test(self):
-        while True:
-            self.cls(0)
+    def update_gps(self):
+        pressed, mx, my, _ = self.mouse_pressed()
+        if pressed and mx < 40 and my < 20:
+            self.set_state("menu")
 
-            self.print("GPS GGA DATA", 70, 10, 12)
+    def draw_gps(self):
+        self.cls(0)
+        self.print("GPS GGA", 90, 10, 12)
 
-            for i, line in enumerate(self.gga_data):
-                self.print(line, 5, 30 + i * 10, 6)
+        for i, line in enumerate(self.gga_data):
+            self.print(line, 5, 30 + i * 12, 6)
 
-            self.print("B to exit", 5, 120, 12)
-
-            if self.btnp(5):
-                break
-
-            self.flip()
-
-        self.pop_menu()
+        self.print("BACK", 5, 5, 8)
 
     # ---------------- CLOCK TEST ----------------
 
-    def clock_test(self):
+    def update_clock(self):
+        pressed, mx, my, _ = self.mouse_pressed()
+        if pressed and mx < 40 and my < 20:
+            self.set_state("menu")
+
+    def draw_clock(self):
         import math
 
-        while True:
-            self.cls(0)
+        self.cls(0)
 
-            t = self.time() // 1000
-            sec = t % 60
-            minute = (t // 60) % 60
-            hour = (t // 3600) % 24
+        t = self.time() // 1000
+        sec = t % 60
+        minute = (t // 60) % 60
+        hour = (t // 3600) % 24
 
-            # Digital
-            self.print(f"{hour:02}:{minute:02}:{sec:02}", 90, 10, 12)
+        # digital
+        self.print(f"{hour:02}:{minute:02}:{sec:02}", 84, 10, 12)
 
-            # Analog
-            cx, cy = 120, 68
-            self.circ(cx, cy, 30, 15)
+        # analog
+        cx, cy = 120, 70
+        self.circ(cx, cy, 30, 15)
 
-            # Hands
-            def hand(angle, length, color):
-                x = cx + math.sin(angle) * length
-                y = cy - math.cos(angle) * length
-                self.line(cx, cy, int(x), int(y), color)
+        def hand(angle, length, color):
+            x = cx + math.sin(angle) * length
+            y = cy - math.cos(angle) * length
+            self.line(cx, cy, int(x), int(y), color)
 
-            hand(sec * math.pi / 30, 25, 12)
-            hand(minute * math.pi / 30, 20, 11)
-            hand((hour % 12) * math.pi / 6, 15, 10)
+        hand(sec * math.pi / 30, 25, 12)
+        hand(minute * math.pi / 30, 20, 11)
+        hand((hour % 12) * math.pi / 6, 15, 10)
 
-            self.print("B to exit", 5, 120, 12)
+        self.print("BACK", 5, 5, 8)
 
-            if self.btnp(5):
-                break
-
-            self.flip()
-
-        self.pop_menu()
-
-    # ---------------- MAIN LOOP ----------------
+    # ---------------- MAIN ----------------
 
     def TIC(self):
-        self.update_menu()
-        self.draw_menu_screen()
+        if self.state == "menu":
+            self.update_menu()
+            self.draw_menu()
+
+        elif self.state == "draw":
+            self.update_draw()
+            self.draw_draw()
+
+        elif self.state == "gps":
+            self.update_gps()
+            self.draw_gps()
+
+        elif self.state == "clock":
+            self.update_clock()
+            self.draw_clock()
 
 
 # ----------------------------
