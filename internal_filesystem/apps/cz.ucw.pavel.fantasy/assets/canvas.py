@@ -1337,15 +1337,17 @@ class SelfTests(Tic):
     def update_menu(self):
         pass
 
+    def button_at(x, y, width, released, mx, my, text):
+        pass
+
     def draw_menu(self):
         self.cls(0)
         menu = self.current_menu()
-
-        self.print(menu["title"], 30, 10, 12, scale = 2)
+        self.print(menu["title"], 10, 5, 12)
 
         released, mx, my, left = self.mouse_released()
 
-        y = 40
+        y = 22
         for name, action in menu["items"]:
             hover = y <= my <= y + 16
             color = 15 if hover else 6
@@ -1355,22 +1357,22 @@ class SelfTests(Tic):
             if hover and released:
                 bg = 15
 
-            #self.rect(5, y, 120, 16, bg)
-            #self.print(name, 5, y + 4, color, scale = 2)
+            self.rect(5, y, 120, 14, bg)
+            self.print(name, 5, y + 4, color)
 
             if released:
                 action()
 
-            y += 24
+            y += 16
 
-        #self.print(f"Touch {mx} x {my}, {left}", 5, y + 4, 15, scale = 2)
-        y += 24
-        #self.print(f"Frame: {self.frame_msec} ms", 5, y + 4, 15, scale = 2)
+        self.print(f"Touch {mx} x {my}, {left}", 5, y + 4, 15)
+        y += 12
+        self.print(f"Frame: {self.frame_msec} ms", 5, y + 4, 15)
         self.debug(f"Frame: {self.frame_msec} ms")
-        y += 24
-        #self.print(f"{self.dragging}, {left}", 5, y + 4, 15, scale = 2)
-        y += 24
-        #self.print(f"{self.width} x {self.height} @ {self.bpp*8} bits", 5, y+4, 15, scale = 2)
+        y += 12
+        self.print(f"{self.dragging}, {left}", 5, y + 4, 15)
+        y += 12
+        self.print(f"{self.width} x {self.height} @ {self.bpp*8} bits", 5, y+4, 15)
         self.pix(mx, my, 15)
 
     # ---------------- DRAW TEST ----------------
@@ -1418,14 +1420,19 @@ class SelfTests(Tic):
     # ---------------- CLOCK TEST ----------------
 
     def update_clock(self):
-        pressed, mx, my, _ = self.mouse_pressed()
-        if pressed and mx < 40 and my < 20:
-            self.set_state("menu")
+        pass
 
     def draw_clock(self):
         import math
 
         self.cls(0)
+
+        pressed, mx, my, _ = self.mouse_pressed()
+        if pressed and mx < 40 and my < 20:
+            self.set_state("menu")
+
+        self.print("BACK", 5, 5, 8)
+        
 
         t = self.time() // 1000
         sec = t % 60
@@ -1447,8 +1454,6 @@ class SelfTests(Tic):
         hand(sec * math.pi / 30, 25, 12)
         hand(minute * math.pi / 30, 20, 11)
         hand((hour % 12) * math.pi / 6, 15, 10)
-
-        self.print("BACK", 5, 5, 8)
 
     # ---------------- MAIN ----------------
 
