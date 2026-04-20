@@ -1332,11 +1332,6 @@ class SelfTests(Tic):
         self.prev_mouse = left
         return pressed, mx, my, left
 
-    # ---------------- MENU RENDER ----------------
-
-    def update_menu(self):
-        pass
-
     def button_at(self, x, y, width, released, mx, my, name, action = None):
         hover = y <= my <= y + 16
         color = 15 if hover else 6
@@ -1352,6 +1347,11 @@ class SelfTests(Tic):
         if hover and released and action:
             action()
         return hover and released
+
+    # ---------------- MENU RENDER ----------------
+
+    def update_menu(self):
+        pass
 
     def draw_menu(self):
         self.cls(0)
@@ -1384,18 +1384,16 @@ class SelfTests(Tic):
         self.color = (self.color + 1) % 16
 
     def update_draw(self):
-        mx, my, left, _, _, _, _ = self.mouse()
+        pass
+
+    def draw_draw(self):
+        released, mx, my, left = self.mouse_released()
+        if self.button_at(0, 0, 30, released, mx, my, "Back"):
+            self.set_state("menu")
 
         if left:
             self.circ(mx, my, self.brush_size, self.color)
 
-        pressed, mx, my, _ = self.mouse_pressed()
-
-        # back button (top-left)
-        if pressed and mx < 40 and my < 20:
-            self.set_state("menu")
-
-    def draw_draw(self):
         self.print("DRAW MODE", 5, 5, 12)
         self.print(f"Brush: {self.brush_size}", 5, 15, 12)
         self.print(f"Color: {self.color}", 5, 25, 12)
