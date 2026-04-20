@@ -1426,13 +1426,10 @@ class SelfTests(Tic):
         import math
 
         self.cls(0)
-
-        pressed, mx, my, _ = self.mouse_pressed()
-        if pressed and mx < 40 and my < 20:
-            self.set_state("menu")
-
-        self.print("BACK", 5, 5, 8)
         
+        released, mx, my, left = self.mouse_released()
+        if self.button_at(0, 0, 30, released, mx, my, "Back"):
+            self.set_state("menu")
 
         t = self.time() // 1000
         sec = t % 60
@@ -1440,10 +1437,10 @@ class SelfTests(Tic):
         hour = (t // 3600) % 24
 
         # digital
-        self.print(f"{hour:02}:{minute:02}:{sec:02}", 84, 10, 12)
+        self.print(f"{hour:02}:{minute:02}:{sec:02}", 45, 5, 12)
 
         # analog
-        cx, cy = 120, 70
+        cx, cy = 45, 70
         self.circ(cx, cy, 30, 15)
 
         def hand(angle, length, color):
