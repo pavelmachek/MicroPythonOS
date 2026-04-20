@@ -52,7 +52,7 @@ class Canvas:
         # This is ratio Samsung s4 mini uses, should allow integer scaling
         self.width = 180
         self.height = 320
-        self.bpp = 4
+        self.bpp = 1
 
         self.canvas = canvas
         self.canvas.set_size(self.width, self.height)
@@ -64,9 +64,14 @@ class Canvas:
 
         # Buffer: your working example uses 4 bytes/pixel
         # Reality filter: this depends on LV_COLOR_DEPTH; but your example proves it works.
-        self.buf = bytearray(self.width * self.height * 4)
         if self.bpp == 4:
+            self.buf = bytearray(self.width * self.height * self.bpp)
             self.canvas.set_buffer(self.buf, self.width, self.height, lv.COLOR_FORMAT.ARGB8888)
+        else:
+            self.buf = bytearray(self.width * self.height * self.bpp)
+            # Palette is available
+            #self.canvas.set_buffer(self.buf, self.width, self.height, lv.COLOR_FORMAT.I8)
+            self.canvas.set_buffer(self.buf, self.width, self.height, lv.COLOR_FORMAT.L8)
 
         self.start_time = time.time()
         self.clip_rect = None
@@ -154,11 +159,14 @@ class Canvas:
     # ----------------------------
 
     def put_pixel_nocheck(self, x, y, c):
-        i = (y * self.width + x) * 4
-        self.buf[i] = c.b
-        self.buf[i+1] = c.g
-        self.buf[i+2] = c.r
-        self.buf[i+3] = 255
+        i = (y * self.width + x) * self.bpp
+        if self.bpp == 4:
+            self.buf[i] = c.b
+            self.buf[i+1] = c.g
+            self.buf[i+2] = c.r
+            self.buf[i+3] = 255
+        else:
+            self.buf[i] = (c.b + c.g + c.r) // 3
 
     def put_pixel(self, x, y, c):
         x = int(x)
@@ -1331,7 +1339,7 @@ class SelfTests(Tic):
         self.cls(0)
         menu = self.current_menu()
 
-        #self.print(menu["title"], 30, 10, 12, scale = 2)
+        self.print(menu["title"], 30, 10, 12, scale = 2)
 
         released, mx, my, left = self.mouse_released()
 
