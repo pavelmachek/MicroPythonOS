@@ -41,6 +41,9 @@ class Canvas:
     def __init__(self, scr, canvas):
         self.scr = scr
 
+        self.start_time = time.time()
+        self.clip_rect = None
+
         # Screen size
         self.W = scr.get_width()
         self.H = scr.get_height()
@@ -50,9 +53,12 @@ class Canvas:
         self.height = self.H
 
         # This is ratio Samsung s4 mini uses, should allow integer scaling
-        self.width = 180 // 2
-        self.height = 320 // 2
-        self.bpp = 1
+        self.width = 180*2
+        self.height = 320*2
+        self.bpp = 4
+        self.scale = 4
+        self.width = self.width // self.scale
+        self.height = self.height // self.scale
 
         self.canvas = canvas
         self.canvas.set_size(self.width, self.height)
@@ -73,10 +79,6 @@ class Canvas:
             #self.canvas.set_buffer(self.buf, self.width, self.height, lv.COLOR_FORMAT.I8)
             self.canvas.set_buffer(self.buf, self.width, self.height, lv.COLOR_FORMAT.L8)
 
-        self.start_time = time.time()
-        self.clip_rect = None
-
-        self.scale = 2
         self.canvas.set_style_transform_scale(256 * self.scale, 0)
 
         # Layer used for draw engine
