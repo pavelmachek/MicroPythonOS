@@ -52,6 +52,7 @@ class Canvas:
         # This is ratio Samsung s4 mini uses, should allow integer scaling
         self.width = 180
         self.height = 320
+        self.bpp = 4
 
         self.canvas = canvas
         self.canvas.set_size(self.width, self.height)
@@ -65,6 +66,9 @@ class Canvas:
         # Reality filter: this depends on LV_COLOR_DEPTH; but your example proves it works.
         self.buf = bytearray(self.width * self.height * 4)
         self.canvas.set_buffer(self.buf, self.width, self.height, lv.COLOR_FORMAT.ARGB8888)
+
+        self.start_time = time.time()
+        self.clip_rect = None
 
         self.scale = 2
         self.canvas.set_style_transform_scale(256 * self.scale, 0)
@@ -102,8 +106,8 @@ class Canvas:
             y /= self.scale
             self.put_pixel(x, y, Color(128,128,128))
             self.dragging["active"] = True
-            self.dragging["last_x"] = x
-            self.dragging["last_y"] = y
+            self.dragging["last_x"] = int(x)
+            self.dragging["last_y"] = int(y)
             self.canvas_update()
             return
         if event_code == lv.EVENT.RELEASED:
@@ -148,7 +152,7 @@ class Canvas:
     # Public API: drawing
     # ----------------------------
 
-    def __put_pixel(self, x, y, c):
+    def put_pixel_nocheck(self, x, y, c):
         i = (y * self.width + x) * 4
         self.buf[i] = c.b
         self.buf[i+1] = c.g
@@ -162,7 +166,7 @@ class Canvas:
             return
         if y < 0 or y >= self.height:
             return
-        self.__put_pixel(x, y, c)
+        self.put_pixel_nocheck(x, y, c)
 
     def clear(self):
         # Clear the canvas background
@@ -175,6 +179,11 @@ class Canvas:
         # - draw ops happen between clear() and update()
         # But then you must ensure the app calls update() once per frame.
         pass
+
+    def debug(self, s):
+        print(s)
+    
+# --- Shared with Android app
 
 class Tic(Canvas):
     """
@@ -352,7 +361,7 @@ Useful for creating persistent games which evolve over time between plays.
             color = self.tc(color)
 
         if self._in_clip(x, y):
-            self.__put_pixel(x, y, color)
+            self.put_pixel_nocheck(x, y, color)
 
     def get_pix(self, x, y):
         return self.pix(x, y)
@@ -367,7 +376,7 @@ Useful for creating persistent games which evolve over time between plays.
         color = self.tc(color)
         for y in range(self.height):
             for x in range(self.width):
-                self.__put_pixel(x, y, color)
+                self.put_pixel_nocheck(x, y, color)
 
     def line(self, x0, y0, x1, y1, color):
         dx = abs(x1 - x0)
@@ -681,11 +690,6 @@ Useful for creating persistent games which evolve over time between plays.
                 cursor_x += char_w + spacing  # TIC-80 still spaces; kerning is minimal
 
         return cursor_x - x
-
-    def __init__(self, scr, canvas):
-        self.start_time = time.time()
-        self.clip_rect = None
-        super().__init__(scr, canvas)
 
     def tc(self, index):
         """Return TIC-80 default color by index 0–15"""
@@ -1263,19 +1267,22 @@ class SelfTests(Tic):
             "$GPGGA,123521,4807.042,N,01131.004,E,1,08,0.9,545.6,M,46.9,M,,*49",
         ]
 
+        self.last_tick_time = time.time()
+        self.frame_msec = 0
+
     # ---------------- MENU ----------------
 
     def main_menu(self):
         return {
             "title": "SELF TESTS",
             "items": [
-                ("Draw Test", lambda: self.enter_menu(self.draw_menu())),
+                ("Draw Test", lambda: self.enter_menu(self.paint_menu())),
                 ("GPS Test", lambda: self.set_state("gps")),
                 ("Clock Test", lambda: self.set_state("clock")),
             ]
         }
 
-    def draw_menu(self):
+    def paint_menu(self):
         return {
             "title": "DRAW SETTINGS",
             "items": [
@@ -1308,37 +1315,52 @@ class SelfTests(Tic):
         self.prev_mouse = left
         return pressed, mx, my, left
 
+    def mouse_released(self):
+        mx, my, left, _, _, _, _= self.mouse()
+        pressed = not left and self.prev_mouse
+        self.prev_mouse = left
+        return pressed, mx, my, left
+
     # ---------------- MENU RENDER ----------------
 
     def update_menu(self):
-        pressed, mx, my, _ = self.mouse_pressed()
-
-        menu = self.current_menu()
-
-        y = 40
-        for name, action in menu["items"]:
-            if 60 <= mx <= 180 and y <= my <= y + 16:
-                if pressed:
-                    action()
-            y += 24  # spacing
+        pass
 
     def draw_menu(self):
         self.cls(0)
         menu = self.current_menu()
 
-        self.print(menu["title"], 84, 10, 12)
+        self.print(menu["title"], 30, 10, 12, scale = 2)
 
-        mx, my, left, _, _, _, _ = self.mouse()
+        released, mx, my, left = self.mouse_released()
 
         y = 40
-        for name, _ in menu["items"]:
-            hover = 60 <= mx <= 180 and y <= my <= y + 16
+        for name, action in menu["items"]:
+            hover = y <= my <= y + 16
             color = 15 if hover else 6
+            bg = 0
+            if hover:
+                bg = 1
+            if hover and released:
+                bg = 15
 
-            self.rect(60, y, 120, 16, 1 if hover else 0)
-            self.print(name, 70, y + 4, color)
+            self.rect(5, y, 120, 16, bg)
+            self.print(name, 5, y + 4, color, scale = 2)
+
+            if released:
+                action()
 
             y += 24
+
+        self.print(f"Touch {mx} x {my}, {left}", 5, y + 4, 15, scale = 2)
+        y += 24
+        self.print(f"Frame: {self.frame_msec} ms", 5, y + 4, 15, scale = 2)
+        self.debug(f"Frame: {self.frame_msec} ms")
+        y += 24
+        self.print(f"{self.dragging}, {left}", 5, y + 4, 15, scale = 2)
+        y += 24
+        self.print(f"{self.width} x {self.height} @ {self.bpp*8}", y+4, 15, scale = 2)
+        self.pix(mx, my, 15)
 
     # ---------------- DRAW TEST ----------------
 
@@ -1420,6 +1442,10 @@ class SelfTests(Tic):
     # ---------------- MAIN ----------------
 
     def TIC(self):
+        now = time.time()
+        self.frame_msec = int((now - self.last_tick_time) * 1000)
+        self.last_tick_time = now
+
         if self.state == "menu":
             self.update_menu()
             self.draw_menu()
@@ -1436,6 +1462,7 @@ class SelfTests(Tic):
             self.update_clock()
             self.draw_clock()
 
+# --- End of shared code
 
 # ----------------------------
 # App logic
