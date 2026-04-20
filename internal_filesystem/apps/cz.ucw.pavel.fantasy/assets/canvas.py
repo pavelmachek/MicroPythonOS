@@ -1337,7 +1337,7 @@ class SelfTests(Tic):
     def update_menu(self):
         pass
 
-    def button_at(self, x, y, width, released, mx, my, name, action):
+    def button_at(self, x, y, width, released, mx, my, name, action = None):
         hover = y <= my <= y + 16
         color = 15 if hover else 6
         bg = 0
@@ -1349,8 +1349,9 @@ class SelfTests(Tic):
         self.rect(x, y, width, 14, bg)
         self.print(name, x + 5, y + 4, color)
 
-        if released:
+        if hover and released and action:
             action()
+        return hover and released
 
     def draw_menu(self):
         self.cls(0)
