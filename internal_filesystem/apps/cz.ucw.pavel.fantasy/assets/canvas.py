@@ -1359,7 +1359,7 @@ class SelfTests(Tic):
         y += 24
         self.print(f"{self.dragging}, {left}", 5, y + 4, 15, scale = 2)
         y += 24
-        self.print(f"{self.width} x {self.height} @ {self.bpp*8}", y+4, 15, scale = 2)
+        self.print(f"{self.width} x {self.height} @ {self.bpp*8} bits", 5, y+4, 15, scale = 2)
         self.pix(mx, my, 15)
 
     # ---------------- DRAW TEST ----------------
