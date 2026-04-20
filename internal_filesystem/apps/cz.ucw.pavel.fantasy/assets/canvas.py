@@ -65,7 +65,8 @@ class Canvas:
         # Buffer: your working example uses 4 bytes/pixel
         # Reality filter: this depends on LV_COLOR_DEPTH; but your example proves it works.
         self.buf = bytearray(self.width * self.height * 4)
-        self.canvas.set_buffer(self.buf, self.width, self.height, lv.COLOR_FORMAT.ARGB8888)
+        if self.bpp == 4:
+            self.canvas.set_buffer(self.buf, self.width, self.height, lv.COLOR_FORMAT.ARGB8888)
 
         self.start_time = time.time()
         self.clip_rect = None
@@ -1330,7 +1331,7 @@ class SelfTests(Tic):
         self.cls(0)
         menu = self.current_menu()
 
-        self.print(menu["title"], 30, 10, 12, scale = 2)
+        #self.print(menu["title"], 30, 10, 12, scale = 2)
 
         released, mx, my, left = self.mouse_released()
 
@@ -1344,22 +1345,22 @@ class SelfTests(Tic):
             if hover and released:
                 bg = 15
 
-            self.rect(5, y, 120, 16, bg)
-            self.print(name, 5, y + 4, color, scale = 2)
+            #self.rect(5, y, 120, 16, bg)
+            #self.print(name, 5, y + 4, color, scale = 2)
 
             if released:
                 action()
 
             y += 24
 
-        self.print(f"Touch {mx} x {my}, {left}", 5, y + 4, 15, scale = 2)
+        #self.print(f"Touch {mx} x {my}, {left}", 5, y + 4, 15, scale = 2)
         y += 24
-        self.print(f"Frame: {self.frame_msec} ms", 5, y + 4, 15, scale = 2)
+        #self.print(f"Frame: {self.frame_msec} ms", 5, y + 4, 15, scale = 2)
         self.debug(f"Frame: {self.frame_msec} ms")
         y += 24
-        self.print(f"{self.dragging}, {left}", 5, y + 4, 15, scale = 2)
+        #self.print(f"{self.dragging}, {left}", 5, y + 4, 15, scale = 2)
         y += 24
-        self.print(f"{self.width} x {self.height} @ {self.bpp*8} bits", 5, y+4, 15, scale = 2)
+        #self.print(f"{self.width} x {self.height} @ {self.bpp*8} bits", 5, y+4, 15, scale = 2)
         self.pix(mx, my, 15)
 
     # ---------------- DRAW TEST ----------------
