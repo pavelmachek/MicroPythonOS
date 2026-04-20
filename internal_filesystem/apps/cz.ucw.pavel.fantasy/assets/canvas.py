@@ -1337,8 +1337,20 @@ class SelfTests(Tic):
     def update_menu(self):
         pass
 
-    def button_at(x, y, width, released, mx, my, text):
-        pass
+    def button_at(self, x, y, width, released, mx, my, name, action):
+        hover = y <= my <= y + 16
+        color = 15 if hover else 6
+        bg = 0
+        if hover:
+            bg = 1
+        if hover and released:
+            bg = 15
+
+        self.rect(x, y, width, 14, bg)
+        self.print(name, x + 5, y + 4, color)
+
+        if released:
+            action()
 
     def draw_menu(self):
         self.cls(0)
@@ -1349,20 +1361,7 @@ class SelfTests(Tic):
 
         y = 22
         for name, action in menu["items"]:
-            hover = y <= my <= y + 16
-            color = 15 if hover else 6
-            bg = 0
-            if hover:
-                bg = 1
-            if hover and released:
-                bg = 15
-
-            self.rect(5, y, 120, 14, bg)
-            self.print(name, 5, y + 4, color)
-
-            if released:
-                action()
-
+            self.button_at(0, y, 120, released, mx, my, name, action)
             y += 16
 
         self.print(f"Touch {mx} x {my}, {left}", 5, y + 4, 15)
