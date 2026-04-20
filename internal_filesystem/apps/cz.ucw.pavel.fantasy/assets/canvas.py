@@ -50,8 +50,8 @@ class Canvas:
         self.height = self.H
 
         # This is ratio Samsung s4 mini uses, should allow integer scaling
-        self.width = 180
-        self.height = 320
+        self.width = 180 // 2
+        self.height = 320 // 2
         self.bpp = 1
 
         self.canvas = canvas
