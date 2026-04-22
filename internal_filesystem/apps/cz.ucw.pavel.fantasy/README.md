@@ -13,26 +13,24 @@ write software for it... hence this.
 
 touchscreen
 blit image
-
-get text input
-
 pcm recording/playback
-
 battery status
 
-some kind of internet access? http access?
+get text input
+http access -- requests
 
 * Phone specific
 
 GPS
-
 cell 
 
 vibration
 LEDs
-sensors -- accelerometer, magnetometer, gyroscope, light sensor, proximity sensor
 camera
-wifi, bluetooth, nfc
+wifi
+
+bluetooth, nfc
+sensors -- accelerometer, magnetometer, gyroscope, light sensor, proximity sensor
 
 temperature
 
