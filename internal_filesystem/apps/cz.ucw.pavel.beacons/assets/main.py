@@ -16,7 +16,6 @@ from mpos import Activity, MposKeyboard, DownloadManager
 import ujson
 import utime
 import usocket as socket
-import ujson
 import requests
 
 # -----------------------------
