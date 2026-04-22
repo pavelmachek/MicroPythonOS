@@ -194,7 +194,7 @@ class Canvas:
     def debug(self, s):
         print(s)
     
-# --- Shared with Android app
+# ### Shared with Android app
 
 class Tic(Canvas):
     """
@@ -1473,7 +1473,7 @@ class SelfTests(Tic):
             self.update_clock()
             self.draw_clock()
 
-# --- End of shared code
+# ### End of shared code
 
 # ----------------------------
 # App logic
