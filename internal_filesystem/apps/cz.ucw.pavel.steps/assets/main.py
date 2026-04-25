@@ -88,8 +88,8 @@ class Main(PagedCanvas):
         self.timer = lv.timer_create(self.tick, 50, None)
 
     # -------------------------
-    def update(self):
-        self.c.clear()
+    def draw(self):
+        self.c.cls()
 
         val = self.counter.update()
 
@@ -116,7 +116,7 @@ class Main(PagedCanvas):
         mid = h // 2
 
         # axis
-        self.c.line(0, mid, w, mid)
+        self.c.line(0, mid, w, mid, 15)
 
         scale = 40  # pixels per accel unit
 
@@ -128,13 +128,13 @@ class Main(PagedCanvas):
             y1 = int(mid - self.hist[i] * scale)
             y2 = int(mid - self.hist[i+1] * scale)
 
-            self.c.line(x1, y1, x2, y2)
+            self.c.line(x1, y1, x2, y2, 15)
 
         # threshold line
         thr = int(mid - self.counter.threshold * scale)
-        self.c.line(0, thr, w, thr)
+        self.c.line(0, thr, w, thr, 15)
 
-        self.c.text(5, 5, f"Steps: {self.counter.steps}")
+        self.c.text(5, 20, f"Steps: {self.counter.steps}")
 
     # -------------------------
     # STATS
@@ -145,7 +145,7 @@ class Main(PagedCanvas):
         distance_m = steps * self.stride_len
         distance_km = distance_m / 1000.0
 
-        self.c.text(0, 10, f"""
+        self.c.text(0, 20, f"""
 Steps: {steps}
 
 Distance:
