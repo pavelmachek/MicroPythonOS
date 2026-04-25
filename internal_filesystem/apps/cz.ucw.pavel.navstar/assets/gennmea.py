@@ -1,3 +1,47 @@
+import time
+
+from geo import *
+
+# ----------------------------
+# Fake NMEA source
+# ----------------------------
+
+def nmea_checksum(sentence_body):
+    # sentence_body without leading '$' and without '*xx'
+    c = 0
+    for ch in sentence_body:
+        c ^= ord(ch)
+    return "%02X" % c
+
+
+def nmea_wrap(sentence_body):
+    return "$%s*%s" % (sentence_body, nmea_checksum(sentence_body))
+
+
+def deg_to_nmea_lat(lat_deg):
+    # ddmm.mmmm, N/S
+    sign = "N"
+    if lat_deg < 0:
+        sign = "S"
+        lat_deg = -lat_deg
+
+    dd = int(lat_deg)
+    mm = (lat_deg - dd) * 60.0
+    return "%02d%07.4f" % (dd, mm), sign
+
+
+def deg_to_nmea_lon(lon_deg):
+    # dddmm.mmmm, E/W
+    sign = "E"
+    if lon_deg < 0:
+        sign = "W"
+        lon_deg = -lon_deg
+
+    ddd = int(lon_deg)
+    mm = (lon_deg - ddd) * 60.0
+    return "%03d%07.4f" % (ddd, mm), sign
+
+
 class FakeNMEASpiral:
     """
     Fake NMEA generator for testing.

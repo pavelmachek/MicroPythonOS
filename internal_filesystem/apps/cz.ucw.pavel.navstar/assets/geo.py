@@ -1,7 +1,15 @@
 import math
 
+def clamp(x, lo, hi):
+    if x < lo:
+        return lo
+    if x > hi:
+        return hi
+    return x
+
 def knots_to_kmh(knots):
     return knots * 1.852
+
 
 def deg_to_rad(d):
     return d * math.pi / 180.0
