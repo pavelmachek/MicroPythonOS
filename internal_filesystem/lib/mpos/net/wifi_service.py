@@ -604,6 +604,7 @@ class WifiService:
 
         return wlan.scan()
 
+    # here
     @staticmethod
     def scan_networks(network_module=None):
         """
