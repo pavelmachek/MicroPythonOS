@@ -50,6 +50,7 @@ class StepCounter:
         )
 
         if is_peak and (now - self.last_step > self.min_interval):
+            # FIXME: if now - self.last_step < self.max_interval:
             self.steps += 1
             self.last_step = now
 
@@ -89,6 +90,7 @@ class Main(PagedCanvas):
 
     # -------------------------
     def draw(self):
+        # FIXME: only do drawing once every...?
         self.c.cls()
 
         val = self.counter.update()
