@@ -2,6 +2,7 @@ import logging
 import lvgl as lv
 import math
 import time
+import os
 
 from mpos import AppearanceManager, AppManager, Activity, DisplayMetrics, add_focus_border
 
@@ -38,6 +39,10 @@ class Launcher(Activity):
     def onResume(self, screen):
         # If we were showing a splash, force a full rebuild to clean up
         self._exit_splash_mode(screen)
+
+        v = os.getenv('RUN')
+        if v:
+            AppManager.start_app(v)
 
         current_apps = []
         for app in AppManager.get_app_list():
@@ -131,8 +136,8 @@ class Launcher(Activity):
         self._last_started_fullname = fullname
 
         # Uncomment to disable the splash screen display when starting an app:
-        #AppManager.start_app(fullname)
-        #return
+        AppManager.start_app(fullname)
+        return
         self._splash_fullname = fullname
 
         splash_screen = lv.obj()
