@@ -46,6 +46,11 @@ TFT_VER_RES=240
 #TFT_HOR_RES=1920
 #TFT_VER_RES=1080
 
+# PinePhone
+if True:
+    TFT_HOR_RES=360
+    TFT_VER_RES=665
+
 bus = lcd_bus.SDLBus(flags=0)
 
 buf1 = bus.allocate_framebuffer(TFT_HOR_RES * TFT_VER_RES * 2, 0)
